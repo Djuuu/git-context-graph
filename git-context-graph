@@ -13,8 +13,8 @@ ${b}NAME${r}
 
 ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
-       ${u}git${r} ${u}context-graph${r} [<git-log options>] [--no-default] [<branch>...] [-- <paths>...]
-       ${u}git${r} ${u}context-graph${r} (--list-context|--list-related|--list-default) [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
+       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
        ${u}git${r} ${u}context-graph${r} --usage
 
 ${b}DESCRIPTION${r}
@@ -28,14 +28,14 @@ ${b}DESCRIPTION${r}
        ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
            Show graph log of branch, its remote counterparts and default branch.
 
-       ${u}git${r} ${u}context-graph${r} [<git-log options>] [--no-default] [<branch>...] [-- <paths>...]
+       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
            git-log options can be used to refine or customize the output
            (see git-log documentation: https://git-scm.com/docs/git-log)
            Ex:
              git context-graph --pretty=medium -- some/path
 
-       ${u}git${r} ${u}context-graph${r} (--list-related|--list-default|--list-context) [<branch>...]
-           List branches that would be shown in the graph.
+       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
+           List branches that would be shown in the graph (does not display graph).
 
        ${u}git${r} ${u}context-graph${r} --usage
            Show this help.
@@ -46,16 +46,14 @@ ${b}ARGUMENTS${r}
 
 ${b}OPTIONS${r}
        --no-default
-           Show only related branches (local and remote), without default branch.
+           Show only related branches (local and remote), without default branch ('main' / 'master').
 
-       --list-context
-           List both related and default branches (does not display graph).
+       -l|--list
+           List branches that would be shown in the graph (does not display graph).
 
-       --list-related
-           List related branches (local and remote) (does not display graph).
-
-       --list-default
-           List repository default branch(es) (does not display graph).
+       -s|--short
+           Use short branch names when listing branches (without 'refs/heads/' or 'refs/remotes/').
+           Implies --list.
 
        --usage
            Show this help.
@@ -145,8 +143,15 @@ context_branches() {
         done
     fi
 
-    # de-duplicate
-    echo -e "${context_branches}" | sort -u | grep "\S"
+    # de-duplicate and remove blank lines
+    context_branches=$(echo -e "${context_branches}" | sort -u | grep "\S")
+
+    # short branch listing
+    [ -n "$GIT_CG_LIST_SHORT" ] && context_branches=$(echo "$context_branches" |
+        sed -e "s/^refs\/heads\///" |
+        sed -e "s/^refs\/remotes\///")
+
+    echo "$context_branches"
 }
 
 
@@ -158,9 +163,8 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --no-default) GIT_CG_SHOW_RELATED_ONLY=1; shift ;;
 
-        --list-related) GIT_CG_SHOW_RELATED_BRANCHES=1; shift ;;
-        --list-default) GIT_CG_SHOW_DEFAULT_BRANCHES=1; shift ;;
-        --list-context) GIT_CG_SHOW_CONTEXT_BRANCHES=1; shift ;;
+        -l|--list)  GIT_CG_LIST=1;                      shift ;;
+        -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
         --usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
@@ -176,10 +180,14 @@ done
 
 
 # Alternative outputs
-if [ -n "$GIT_CG_SHOW_CONTEXT_BRANCHES" ]; then context_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
-if [ -n "$GIT_CG_SHOW_RELATED_BRANCHES" ]; then related_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
-if [ -n "$GIT_CG_SHOW_DEFAULT_BRANCHES" ]; then default_branches;                         exit 0; fi
-if [ -n "$GIT_CONTEXT_GRAPH_HELP" ];       then usage;                                    exit 0; fi
+if [ -n "$GIT_CG_LIST" ]; then
+    context_branches "${GIT_CG_BRANCHES[@]}"
+    exit 0
+fi
+if [ -n "$GIT_CONTEXT_GRAPH_HELP" ]; then
+    usage
+    exit 0
+fi
 
 
 # Show graph

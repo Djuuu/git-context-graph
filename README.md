@@ -17,9 +17,9 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 ## Synopsis
 
 <code><b>git context-graph</b> <i>[--no-default] [&lt;branch&gt;...]</i></code>  
-<code><b>git</b> <b>context-graph</b> <i>[&lt;git-log options&gt;] [--no-default] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
+<code><b>git context-graph</b> <i>[&lt;git-log options&gt;...] [&lt;options&gt;...] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
 
-<code><b>git context-graph</b> <i>(--list-context|--list-related|--list-default) [&lt;branch&gt;]</i></code>  
+<code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;]</i></code>  
 
 <code><b>git context-graph</b> <i>--usage</i></code>
 
@@ -35,16 +35,16 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * <code><b>git</b> <b>context-graph</b> <i>[--no-default] [&lt;branch&gt;...]</i></code>  
   Show graph log of branch, its remote counterparts and default branch.
 
-* <code><b>git</b> <b>context-graph</b> <i>[&lt;git-log options&gt;] [--no-default] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
+* <code><b>git context-graph</b> <i>[&lt;git-log options&gt;...] [&lt;options&gt;...] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
   `git-log` options can be used to refine or customize the output  
   (see git-log documentation: https://git-scm.com/docs/git-log)  
   Ex:  
   <code>git context-graph --pretty=medium -- some/path</code>
 
-* <code><b>git</b> <b>context-graph</b> <i>(--list-related|--list-default|--list-context) [&lt;branch&gt;...]</i></code>  
-  List branches that would be shown in the graph.
+* <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;...]</i></code>  
+  List branches that would be shown in the graph (does not display graph).
 
-* <code><b>git</b> <b>context-graph</b> <i>--usage</i></code>  
+* <code><b>git context-graph</b> <i>--usage</i></code>  
   Show the help page.
 
 ## Arguments
@@ -57,14 +57,12 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * `--no-default`  
   Show only related branches (local and remote), without default branch.
 
-* `--list-context`  
-  List both related and default branches (does not display graph).
+* `-l`|`--list`  
+  List branches that would be shown in the graph (does not display graph).
 
-* `--list-related`  
-  List related branches (local and remote) (does not display graph).
-
-* `--list-default`  
-  List repository default branch(es) (does not display graph).
+* `-s`|`--short`  
+  Use short branch names when listing branches (without `refs/heads/` or `refs/remotes/`).  
+  Implies `--list`.
 
 * `--usage`  
   Show command usage.
