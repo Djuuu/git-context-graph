@@ -1,6 +1,84 @@
 #!/usr/bin/env bash
 
 
+usage() {
+    local b; b="$(printf '\e[1m')"
+    local u; u="$(printf '\e[4m')"
+    local r; r="$(printf '\e[0m')"
+
+    cat <<EOF
+
+${b}NAME${r}
+       ${u}git-context-graph${r} - Show graph log of branch, its remote counterparts and default branch.
+
+${b}SYNOPSIS${r}
+       ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [<git-log options>] [--no-default] [<branch>...] [-- <paths>...]
+       ${u}git${r} ${u}context-graph${r} (--list-context|--list-related|--list-default) [<branch>...]
+       ${u}git${r} ${u}context-graph${r} --usage
+
+${b}DESCRIPTION${r}
+       This command is a shortcut to:
+
+           git log --color --graph --abbrev-commit --decorate --pretty=oneline \\
+               <branch> origin/<branch> other-remote/<branch> ... \\
+               [main    origin/main     other-remote/main] ...
+
+
+       ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
+           Show graph log of branch, its remote counterparts and default branch.
+
+       ${u}git${r} ${u}context-graph${r} [<git-log options>] [--no-default] [<branch>...] [-- <paths>...]
+           git-log options can be used to refine or customize the output
+           (see git-log documentation: https://git-scm.com/docs/git-log)
+           Ex:
+             git context-graph --pretty=medium -- some/path
+
+       ${u}git${r} ${u}context-graph${r} (--list-related|--list-default|--list-context) [<branch>...]
+           List branches that would be shown in the graph.
+
+       ${u}git${r} ${u}context-graph${r} --usage
+           Show this help.
+
+${b}ARGUMENTS${r}
+       <branch>...
+           Branches to show graph for. If omitted, current branch will be used.
+
+${b}OPTIONS${r}
+       --no-default
+           Show only related branches (local and remote), without default branch.
+
+       --list-context
+           List both related and default branches (does not display graph).
+
+       --list-related
+           List related branches (local and remote) (does not display graph).
+
+       --list-default
+           List repository default branch(es) (does not display graph).
+
+       --usage
+           Show this help.
+
+${b}INSTALLATION${r}
+    Add the git-context-graph directory to your PATH
+
+        PATH="\${PATH}:/path/to/git-context-graph"
+
+    OR
+
+    Define it as a git alias:
+
+        git config --global alias.context-graph '!bash /path/to/git-context-graph/git-context-graph'
+
+    or edit your ~/.gitconfig directly:
+
+        [alias]
+            cg = "!bash /path/to/git-context-graph/git-context-graph"
+
+EOF
+}
+
 git_current_branch() {
     # `git branch --show-current` is available starting from Git 2.22
     # fallback to `git rev-parse --abbrev-ref HEAD` if first command fails
@@ -84,6 +162,8 @@ while [[ $# -gt 0 ]]; do
         --list-default) GIT_CG_SHOW_DEFAULT_BRANCHES=1; shift ;;
         --list-context) GIT_CG_SHOW_CONTEXT_BRANCHES=1; shift ;;
 
+        --usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
+
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
         *)
@@ -99,6 +179,7 @@ done
 if [ -n "$GIT_CG_SHOW_CONTEXT_BRANCHES" ]; then context_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
 if [ -n "$GIT_CG_SHOW_RELATED_BRANCHES" ]; then related_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
 if [ -n "$GIT_CG_SHOW_DEFAULT_BRANCHES" ]; then default_branches;                         exit 0; fi
+if [ -n "$GIT_CONTEXT_GRAPH_HELP" ];       then usage;                                    exit 0; fi
 
 
 # Show graph
