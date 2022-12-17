@@ -61,9 +61,11 @@ context_branches() {
     local context_branches
     context_branches="$(related_branches "$@")"
 
-    for default_branch in $(default_branches); do
-        context_branches="${context_branches}\n$(branch_with_remotes "$default_branch")"
-    done
+    if [ -z "$GIT_CG_SHOW_RELATED_ONLY" ]; then
+        for default_branch in $(default_branches); do
+            context_branches="${context_branches}\n$(branch_with_remotes "$default_branch")"
+        done
+    fi
 
     # de-duplicate
     echo -e "${context_branches}" | sort -u | grep "\S"
@@ -74,6 +76,8 @@ context_branches() {
 args=()
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --no-default) GIT_CG_SHOW_RELATED_ONLY=1; shift ;;
+
         --list-related) GIT_CG_SHOW_RELATED_BRANCHES=1; shift ;;
         --list-default) GIT_CG_SHOW_DEFAULT_BRANCHES=1; shift ;;
         --list-context) GIT_CG_SHOW_CONTEXT_BRANCHES=1; shift ;;
