@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+
+git_current_branch() {
+    # `git branch --show-current` is available starting from Git 2.22
+    # fallback to `git rev-parse --abbrev-ref HEAD` if first command fails
+    (git branch --show-current 2>/dev/null) ||
+        git rev-parse --abbrev-ref HEAD
+}
+
+branch_with_remotes() {
+    local branch=${1:-$(git_current_branch)}
+
+    # Convert 'refs/heads/my-branch' to 'my-branch'
+    local short_branch=${branch#"refs/heads/"}
+
+    git for-each-ref --format="%(refname)" "refs/**/$short_branch"
+    # TODO: branch tracking remote with a different name
+}
+
+related_branches() {
+    local branches=("$@")
+    [ ${#branches[@]} -eq 0 ] && branches[0]=$(git_current_branch)
+
+    local related_branches
+
+    for branch in "${branches[@]}"; do
+        related_branches="${related_branches}\n$(branch_with_remotes "$branch")"
+    done
+
+    # de-duplicate and remove blank lines
+    echo -e "${related_branches}" | sort -u | grep "\S"
+}
+
+default_branches() {
+    local default_branches
+
+    # default remote branches
+    for remote in $(git remote); do
+        local remote_default
+        remote_default=$(git symbolic-ref "refs/remotes/${remote}/HEAD" -- 2>/dev/null)
+        if [ -n "$remote_default" ]; then
+            local short_default=${remote_default#"refs/remotes/${remote}/"}
+            default_branches="${default_branches}\n${short_default}"
+        fi
+    done
+
+    # standard default branches
+    if [ -z "$default_branches" ]; then
+        for std_default in 'main' 'master'; do
+            git show-ref --verify --quiet "refs/heads/$std_default" &&
+                default_branches="${default_branches}\n${std_default}"
+        done
+    fi
+
+    # de-duplicate and remove blank lines
+    echo -e "${default_branches}" | sort -u | grep "\S"
+}
+
+context_branches() {
+    local context_branches
+    context_branches="$(related_branches "$@")"
+
+    for default_branch in $(default_branches); do
+        context_branches="${context_branches}\n$(branch_with_remotes "$default_branch")"
+    done
+
+    # de-duplicate
+    echo -e "${context_branches}" | sort -u | grep "\S"
+}
+
+
+# Parse options & arguments
+args=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --list-related) GIT_CG_SHOW_RELATED_BRANCHES=1; shift ;;
+        --list-default) GIT_CG_SHOW_DEFAULT_BRANCHES=1; shift ;;
+        --list-context) GIT_CG_SHOW_CONTEXT_BRANCHES=1; shift ;;
+
+        *) args+=("$1"); shift ;;
+    esac
+done
+set -- "${args[@]}"
+
+
+# Alternative outputs
+if [ -n "$GIT_CG_SHOW_CONTEXT_BRANCHES" ]; then context_branches "$@"; exit 0; fi
+if [ -n "$GIT_CG_SHOW_RELATED_BRANCHES" ]; then related_branches "$@"; exit 0; fi
+if [ -n "$GIT_CG_SHOW_DEFAULT_BRANCHES" ]; then default_branches;      exit 0; fi
+
+
+# Show graph
+# shellcheck disable=SC2046 # use word splitting
+git log --color --graph --abbrev-commit --decorate --pretty=oneline $(context_branches "$@")
