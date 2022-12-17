@@ -93,8 +93,15 @@ branch_with_remotes() {
     # Convert 'refs/heads/my-branch' to 'my-branch'
     local short_branch=${branch#"refs/heads/"}
 
-    git for-each-ref --format="%(refname)" "refs/**/$short_branch"
-    # TODO: branch tracking remote with a different name
+    # Branches with same name on all remotes
+    local same_name_refs;
+    same_name_refs=$(git for-each-ref --format="%(refname)" "refs/**/$short_branch")
+    echo "$same_name_refs"
+
+    # Remote tracking branch (in case name is different)
+    local tracking_remote;
+    tracking_remote=$(git for-each-ref --format='%(upstream)' "$(git rev-parse --symbolic-full-name "$branch")")
+    [[ ! $same_name_refs =~ $tracking_remote ]] && echo "$tracking_remote"
 }
 
 related_branches() {
