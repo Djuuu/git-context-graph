@@ -16,7 +16,7 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 
 ## Synopsis
 
-<code><b>git context-graph</b> <i>[--no-default] [&lt;branch&gt;...]</i></code>  
+<code><b>git context-graph</b> <i>[--no-default] [-a|--add] [&lt;branch&gt;...]</i></code>  
 <code><b>git context-graph</b> <i>[&lt;git-log options&gt;...] [&lt;options&gt;...] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
 
 <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;]</i></code>  
@@ -32,7 +32,7 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
     [main    origin/main     other-remote/main] ...
 ```
 
-* <code><b>git</b> <b>context-graph</b> <i>[--no-default] [&lt;branch&gt;...]</i></code>  
+* <code><b>git context-graph</b> <i>[--no-default] [-a|--add] [&lt;branch&gt;...]</i></code>  
   Show graph log of branch, its remote counterparts and default branch.
 
 * <code><b>git context-graph</b> <i>[&lt;git-log options&gt;...] [&lt;options&gt;...] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
@@ -53,6 +53,9 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
   Branches to show graph for. If omitted, current branch will be used.
 
 ## Options
+
+* `-a`|`--add`  
+  Consider `<branch>` arguments as additional branches (added to current branch).
 
 * `--no-default`  
   Show only related branches (local and remote), without default branch.

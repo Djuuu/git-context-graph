@@ -12,7 +12,7 @@ ${b}NAME${r}
        ${u}git-context-graph${r} - Show graph log of branch, its remote counterparts and default branch.
 
 ${b}SYNOPSIS${r}
-       ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [--no-default] [-a|--add] [<branch>...]
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
        ${u}git${r} ${u}context-graph${r} --usage
@@ -25,7 +25,7 @@ ${b}DESCRIPTION${r}
                [main    origin/main     other-remote/main] ...
 
 
-       ${u}git${r} ${u}context-graph${r} [--no-default] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [--no-default] [-a|--add] [<branch>...]
            Show graph log of branch, its remote counterparts and default branch.
 
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
@@ -45,6 +45,9 @@ ${b}ARGUMENTS${r}
            Branches to show graph for. If omitted, current branch will be used.
 
 ${b}OPTIONS${r}
+       -a|--add
+           Consider <branch> arguments as additional branches (added to current branch).
+
        --no-default
            Show only related branches (local and remote), without default branch ('main' / 'master').
 
@@ -96,7 +99,12 @@ branch_with_remotes() {
 
 related_branches() {
     local branches=("$@")
+
+    # Default to current branch
     [ ${#branches[@]} -eq 0 ] && branches[0]=$(git_current_branch)
+
+    # Add current branch to list when considering arguments are additional branches
+    [ -n "$GIT_CG_ADD_TO_CURRENT" ] && branches+=("$(git_current_branch)")
 
     local related_branches
 
@@ -161,6 +169,8 @@ GIT_LOG_OPTIONS=()
 GIT_LOG_PATHS=()
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -a|--add) GIT_CG_ADD_TO_CURRENT=1; shift ;;
+
         --no-default) GIT_CG_SHOW_RELATED_ONLY=1; shift ;;
 
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
