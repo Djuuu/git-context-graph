@@ -73,7 +73,9 @@ context_branches() {
 
 
 # Parse options & arguments
-args=()
+GIT_CG_BRANCHES=()
+GIT_LOG_OPTIONS=()
+GIT_LOG_PATHS=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         --no-default) GIT_CG_SHOW_RELATED_ONLY=1; shift ;;
@@ -82,18 +84,26 @@ while [[ $# -gt 0 ]]; do
         --list-default) GIT_CG_SHOW_DEFAULT_BRANCHES=1; shift ;;
         --list-context) GIT_CG_SHOW_CONTEXT_BRANCHES=1; shift ;;
 
-        *) args+=("$1"); shift ;;
+        --) GIT_LOG_PATHS+=("$1");   shift ;;
+        -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
+        *)
+            [ ${#GIT_LOG_PATHS[@]} -eq 0 ] &&
+                GIT_CG_BRANCHES+=("$1") ||
+                GIT_LOG_PATHS+=("$1")
+            shift ;;
     esac
 done
-set -- "${args[@]}"
 
 
 # Alternative outputs
-if [ -n "$GIT_CG_SHOW_CONTEXT_BRANCHES" ]; then context_branches "$@"; exit 0; fi
-if [ -n "$GIT_CG_SHOW_RELATED_BRANCHES" ]; then related_branches "$@"; exit 0; fi
-if [ -n "$GIT_CG_SHOW_DEFAULT_BRANCHES" ]; then default_branches;      exit 0; fi
+if [ -n "$GIT_CG_SHOW_CONTEXT_BRANCHES" ]; then context_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
+if [ -n "$GIT_CG_SHOW_RELATED_BRANCHES" ]; then related_branches "${GIT_CG_BRANCHES[@]}"; exit 0; fi
+if [ -n "$GIT_CG_SHOW_DEFAULT_BRANCHES" ]; then default_branches;                         exit 0; fi
 
 
 # Show graph
-# shellcheck disable=SC2046 # use word splitting
-git log --color --graph --abbrev-commit --decorate --pretty=oneline $(context_branches "$@")
+# shellcheck disable=SC2046 # use word splitting for GIT_CG_BRANCHES
+git log --color --graph --abbrev-commit --decorate --pretty=oneline \
+    "${GIT_LOG_OPTIONS[@]}" \
+    $(context_branches "${GIT_CG_BRANCHES[@]}") \
+    "${GIT_LOG_PATHS[@]}"
