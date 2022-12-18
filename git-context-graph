@@ -170,6 +170,13 @@ context_branches() {
 }
 
 
+# Check current directory is a Git repository
+if ! git rev-parse 2> /dev/null; then
+    echo "Not a git repository"
+    exit 1
+fi
+
+
 # Parse options & arguments
 GIT_CG_BRANCHES=()
 GIT_LOG_OPTIONS=()
