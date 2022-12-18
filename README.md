@@ -21,7 +21,7 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 
 <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;]</i></code>  
 
-<code><b>git context-graph</b> <i>--usage</i></code>
+<code><b>git context-graph</b> <i>(-h|--usage)</i></code>
 
 ## Description
 
@@ -44,7 +44,7 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;...]</i></code>  
   List branches that would be shown in the graph (does not display graph).
 
-* <code><b>git context-graph</b> <i>--usage</i></code>  
+* <code><b>git context-graph</b> <i>(-h|--usage)</i></code>  
   Show the help page.
 
 ## Arguments
@@ -67,7 +67,7 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
   Use short branch names when listing branches (without `refs/heads/` or `refs/remotes/`).  
   Implies `--list`.
 
-* `--usage`  
+* `-h`|`--usage`  
   Show command usage.
 
 ## Installation

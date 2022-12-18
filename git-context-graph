@@ -15,7 +15,7 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [--no-default] [-a|--add] [<branch>...]
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
-       ${u}git${r} ${u}context-graph${r} --usage
+       ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
 ${b}DESCRIPTION${r}
        This command is a shortcut to:
@@ -37,7 +37,7 @@ ${b}DESCRIPTION${r}
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
            List branches that would be shown in the graph (does not display graph).
 
-       ${u}git${r} ${u}context-graph${r} --usage
+       ${u}git${r} ${u}context-graph${r} (-h|--usage)
            Show this help.
 
 ${b}ARGUMENTS${r}
@@ -58,24 +58,8 @@ ${b}OPTIONS${r}
            Use short branch names when listing branches (without 'refs/heads/' or 'refs/remotes/').
            Implies --list.
 
-       --usage
+       -h|--usage
            Show this help.
-
-${b}INSTALLATION${r}
-    Add the git-context-graph directory to your PATH
-
-        PATH="\${PATH}:/path/to/git-context-graph"
-
-    OR
-
-    Define it as a git alias:
-
-        git config --global alias.context-graph '!bash /path/to/git-context-graph/git-context-graph'
-
-    or edit your ~/.gitconfig directly:
-
-        [alias]
-            cg = "!bash /path/to/git-context-graph/git-context-graph"
 
 EOF
 }
@@ -190,7 +174,7 @@ while [[ $# -gt 0 ]]; do
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
         -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
-        --usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
+        -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
