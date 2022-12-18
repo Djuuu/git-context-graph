@@ -90,3 +90,8 @@ _OR_
   [alias]
   	cg = "!bash /path/to/git-context-graph/git-context-graph"
   ```
+
+Completion is available in `.git-completion.bash`. Source it in one of your shell startup scripts:
+```bash
+. "/path/to/git-context-graph/.git-completion.bash"
+```
