@@ -77,6 +77,11 @@ branch_with_remotes() {
     # Convert 'refs/heads/my-branch' to 'my-branch'
     local short_branch=${branch#"refs/heads/"}
 
+    if [ "$short_branch" == "HEAD" ]; then
+        echo "$branch"
+        return
+    fi
+
     # Branches with same name on all remotes
     local same_name_refs;
     same_name_refs=$(git for-each-ref --format="%(refname)" "refs/**/$short_branch")
@@ -91,11 +96,15 @@ branch_with_remotes() {
 related_branches() {
     local branches=("$@")
 
+    local current_branch;
+    current_branch=$(git_current_branch)
+    [ -z "$current_branch" ] && current_branch="HEAD"
+
     # Default to current branch
-    [ ${#branches[@]} -eq 0 ] && branches[0]=$(git_current_branch)
+    [ ${#branches[@]} -eq 0 ] && branches[0]="$current_branch"
 
     # Add current branch to list when considering arguments are additional branches
-    [ -n "$GIT_CG_ADD_TO_CURRENT" ] && branches+=("$(git_current_branch)")
+    [ -n "$GIT_CG_ADD_TO_CURRENT" ] && branches+=("$current_branch")
 
     local related_branches
 
