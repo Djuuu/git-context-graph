@@ -37,3 +37,9 @@ _git_context_graph() {
 
     __git_complete_revlist
 }
+
+
+# Add completion for aliases
+for a in $(alias -p | grep "git[- ]context-graph" | cut -d' ' -f2 | cut -d= -f1); do
+    __git_complete "$a" _git_context_graph
+done
