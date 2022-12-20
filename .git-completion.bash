@@ -39,7 +39,14 @@ _git_context_graph() {
 }
 
 
+# Load git completion if not loaded yet and available at usual path
+if ! declare -f __git_complete > /dev/null  && [ -f /usr/share/bash-completion/completions/git ]; then
+    . /usr/share/bash-completion/completions/git
+fi
+
 # Add completion for aliases
-for a in $(alias -p | grep "git[- ]context-graph" | cut -d' ' -f2 | cut -d= -f1); do
-    __git_complete "$a" _git_context_graph
-done
+if declare -f __git_complete > /dev/null; then
+    for a in $(alias -p | grep "git[- ]context-graph" | cut -d' ' -f2 | cut -d= -f1); do
+        __git_complete "$a" _git_context_graph
+    done
+fi
