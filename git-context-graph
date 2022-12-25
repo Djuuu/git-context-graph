@@ -77,7 +77,7 @@ branch_with_remotes() {
     # Convert 'refs/heads/my-branch' to 'my-branch'
     local short_branch=${branch#"refs/heads/"}
 
-    if [ "$short_branch" == "HEAD" ]; then
+    if [[ $short_branch == "HEAD" ]]; then
         echo "$branch"
         return
     fi
@@ -98,13 +98,13 @@ related_branches() {
 
     local current_branch;
     current_branch=$(git_current_branch)
-    [ -z "$current_branch" ] && current_branch="HEAD"
+    [[ -z $current_branch ]] && current_branch="HEAD"
 
     # Default to current branch
-    [ ${#branches[@]} -eq 0 ] && branches[0]="$current_branch"
+    [[ ${#branches[@]} -eq 0 ]] && branches[0]="$current_branch"
 
     # Add current branch to list when considering arguments are additional branches
-    [ -n "$GIT_CG_ADD_TO_CURRENT" ] && branches+=("$current_branch")
+    [[ -n $GIT_CG_ADD_TO_CURRENT ]] && branches+=("$current_branch")
 
     local related_branches
 
@@ -123,14 +123,14 @@ default_branches() {
     for remote in $(git remote); do
         local remote_default
         remote_default=$(git symbolic-ref "refs/remotes/${remote}/HEAD" -- 2>/dev/null)
-        if [ -n "$remote_default" ]; then
+        if [[ -n $remote_default ]]; then
             local short_default=${remote_default#"refs/remotes/${remote}/"}
             default_branches="${default_branches}\n${short_default}"
         fi
     done
 
     # standard default branches
-    if [ -z "$default_branches" ]; then
+    if [[ -z $default_branches ]]; then
         for std_default in 'main' 'master'; do
             git show-ref --verify --quiet "refs/heads/$std_default" &&
                 default_branches="${default_branches}\n${std_default}"
@@ -145,7 +145,7 @@ context_branches() {
     local context_branches
     context_branches="$(related_branches "$@")"
 
-    if [ -z "$GIT_CG_SHOW_RELATED_ONLY" ]; then
+    if [[ -z $GIT_CG_SHOW_RELATED_ONLY ]]; then
         for default_branch in $(default_branches); do
             context_branches="${context_branches}\n$(branch_with_remotes "$default_branch")"
         done
@@ -155,7 +155,7 @@ context_branches() {
     context_branches=$(echo -e "${context_branches}" | sort -u | grep "\S")
 
     # short branch listing
-    [ -n "$GIT_CG_LIST_SHORT" ] && context_branches=$(echo "$context_branches" |
+    [[ -n $GIT_CG_LIST_SHORT ]] && context_branches=$(echo "$context_branches" |
         sed -e "s/^refs\/heads\///" |
         sed -e "s/^refs\/remotes\///")
 
@@ -188,7 +188,7 @@ while [[ $# -gt 0 ]]; do
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
         *)
-            [ ${#GIT_LOG_PATHS[@]} -eq 0 ] &&
+            [[ ${#GIT_LOG_PATHS[@]} -eq 0 ]] &&
                 GIT_CG_BRANCHES+=("$1") ||
                 GIT_LOG_PATHS+=("$1")
             shift ;;
@@ -197,11 +197,11 @@ done
 
 
 # Alternative outputs
-if [ -n "$GIT_CG_LIST" ]; then
+if [[ -n $GIT_CG_LIST ]]; then
     context_branches "${GIT_CG_BRANCHES[@]}"
     exit 0
 fi
-if [ -n "$GIT_CONTEXT_GRAPH_HELP" ]; then
+if [[ -n $GIT_CONTEXT_GRAPH_HELP ]]; then
     usage
     exit 0
 fi
