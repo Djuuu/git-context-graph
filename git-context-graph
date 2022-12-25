@@ -89,7 +89,7 @@ branch_with_remotes() {
 
     # Remote tracking branch (in case name is different)
     local tracking_remote;
-    tracking_remote=$(git for-each-ref --format='%(upstream)' "$(git rev-parse --symbolic-full-name "$branch")")
+    tracking_remote=$(git for-each-ref --format='%(upstream)' "$(git rev-parse --symbolic-full-name "$branch" 2> /dev/null)")
     [[ ! $same_name_refs =~ $tracking_remote ]] && echo "$tracking_remote"
 }
 
