@@ -21,6 +21,9 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 
 <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;]</i></code>  
 
+<code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
+<code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>
+
 <code><b>git context-graph</b> <i>(-h|--usage)</i></code>
 
 ## Description
@@ -28,8 +31,7 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 This command is a shortcut to:
 ```bash
 git log --color --graph --abbrev-commit --decorate --pretty=oneline \
-    <branch> origin/<branch> other-remote/<branch> ... \
-    [main    origin/main     other-remote/main] ...
+    my-branch origin/my-branch main origin/main ...
 ```
 
 * <code><b>git context-graph</b> <i>[--no-default] [-a|--add] [&lt;branch&gt;...]</i></code>  
@@ -43,6 +45,10 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 
 * <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;...]</i></code>  
   List branches that would be shown in the graph (does not display graph).
+
+* <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
+  <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>  
+  For a given branch, persist additional context branches to git configuration.
 
 * <code><b>git context-graph</b> <i>(-h|--usage)</i></code>  
   Show the help page.
@@ -66,6 +72,13 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * `-s`|`--short`  
   Use short branch names when listing branches (without `refs/heads/` or `refs/remotes/`).  
   Implies `--list`.
+
+* `-A`|`--config-add` `<additional_branch>...`  
+  For a given branch, persist additional context branches to git configuration.
+
+* `-C`|`--config-clear` `[<additional_branch>...]`  
+  For a given branch, remove additional context branches from git configuration.  
+  If no additional branch is passed, all configured additional branches will be removed.
 
 * `-h`|`--usage`  
   Show command usage.

@@ -23,7 +23,7 @@ _git_context_graph() {
             ;;
         --*)
             __gitcomp "
-            --add --no-default --list --short --usage
+            --add --no-default --list --short --usage --config-add --config-clear
             --all --branches --tags --remotes
             --simplify-merges --simplify-by-decoration
             --abbrev-commit --no-abbrev-commit --abbrev=
