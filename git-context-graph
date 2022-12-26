@@ -12,7 +12,7 @@ ${b}NAME${r}
        ${u}git-context-graph${r} - Show graph log of branch, its remote counterparts and default branch.
 
 ${b}SYNOPSIS${r}
-       ${u}git${r} ${u}context-graph${r} [--no-default] [-a|--add] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<branch>...]
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
 
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
@@ -28,7 +28,7 @@ ${b}DESCRIPTION${r}
            git log --color --graph --abbrev-commit --decorate --pretty=oneline \\
                my-branch origin/my-branch main origin/main ...
 
-       ${u}git${r} ${u}context-graph${r} [--no-default] [-a|--add] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<branch>...]
            Show graph log of branch, its remote counterparts and default branch.
 
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
@@ -54,6 +54,9 @@ ${b}ARGUMENTS${r}
 ${b}OPTIONS${r}
        -a|--add
            Consider <branch> arguments as additional branches (added to current branch).
+
+       --local
+           Show only local branches (ignore remotes).
 
        --no-default
            Show only related branches (local and remote), without default branch ('main' / 'master').
@@ -99,10 +102,17 @@ branch_with_remotes() {
         return
     fi
 
+    local ref_pattern
+    [[ -z $GIT_CG_SHOW_LOCAL_ONLY ]] &&
+        ref_pattern="refs/**/$short_branch" ||
+        ref_pattern="refs/heads/$short_branch"
+
     # Branches with same name on all remotes
     local same_name_refs;
-    same_name_refs=$(git for-each-ref --format="%(refname)" "refs/**/$short_branch")
+    same_name_refs=$(git for-each-ref --format="%(refname)" "$ref_pattern")
     echo "$same_name_refs"
+
+    [[ -n $GIT_CG_SHOW_LOCAL_ONLY ]] && return
 
     # Remote tracking branch (in case name is different)
     local tracking_remote;
@@ -304,6 +314,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -a|--add) GIT_CG_ADD_TO_CURRENT=1; shift ;;
 
+        --local)      GIT_CG_SHOW_LOCAL_ONLY=1;   shift ;;
         --no-default) GIT_CG_SHOW_RELATED_ONLY=1; shift ;;
 
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
