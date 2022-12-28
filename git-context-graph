@@ -356,7 +356,9 @@ fi
 
 # Show graph
 # shellcheck disable=SC2046 # use word splitting for GIT_CG_BRANCHES
-git log --color --graph --abbrev-commit --decorate --pretty=oneline \
+git \
+    -c log.excludeDecoration='refs/remotes/*/HEAD' \
+    log --color --graph --abbrev-commit --decorate --pretty=oneline \
     "${GIT_LOG_OPTIONS[@]}" \
     $(context_branches "${GIT_CG_BRANCHES[@]}") \
     "${GIT_LOG_PATHS[@]}"
