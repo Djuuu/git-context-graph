@@ -320,18 +320,18 @@ while [[ $# -gt 0 ]]; do
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
         -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
-        -A|--config-add)   GIT_CG_CONFIGURE=1; GIT_CG_CONFIG_ADD=1; GIT_CG_CONFIG_CLEAR=0; shift ;;
-        -C|--config-clear) GIT_CG_CONFIGURE=1; GIT_CG_CONFIG_ADD=0; GIT_CG_CONFIG_CLEAR=1; shift ;;
+        -A|--config-add)   GIT_CG_CONFIGURE="add";   GIT_CG_CONFIG_ADD=1;   shift ;;
+        -C|--config-clear) GIT_CG_CONFIGURE="clear"; GIT_CG_CONFIG_CLEAR=1; shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
          *)
-            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]]; then GIT_LOG_PATHS+=("$1")         # git-log path argument (after '--')
-            elif [[ $GIT_CG_CONFIG_ADD   -eq 1 ]]; then GIT_CG_ADD_BRANCHES+=("$1")   # additional branch to add to config
-            elif [[ $GIT_CG_CONFIG_CLEAR -eq 1 ]]; then GIT_CG_CLEAR_BRANCHES+=("$1") # additional branch to remove to config
-            else                                        GIT_CG_BRANCHES+=("$1")       # git-context-graph branch argument
+            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]];   then GIT_LOG_PATHS+=("$1")         # git-log path argument (after '--')
+            elif [[ $GIT_CG_CONFIGURE == "add" ]];   then GIT_CG_ADD_BRANCHES+=("$1")   # additional branch to add to config
+            elif [[ $GIT_CG_CONFIGURE == "clear" ]]; then GIT_CG_CLEAR_BRANCHES+=("$1") # additional branch to remove from config
+            else                                          GIT_CG_BRANCHES+=("$1")       # git-context-graph branch argument
             fi; shift ;;
     esac
 done
@@ -356,7 +356,9 @@ fi
 
 # Show graph
 # shellcheck disable=SC2046 # use word splitting for GIT_CG_BRANCHES
-git log --color --graph --abbrev-commit --decorate --pretty=oneline \
+git \
+    -c log.excludeDecoration='refs/remotes/*/HEAD' \
+    log --color --graph --abbrev-commit --decorate --pretty=oneline \
     "${GIT_LOG_OPTIONS[@]}" \
     $(context_branches "${GIT_CG_BRANCHES[@]}") \
     "${GIT_LOG_PATHS[@]}"

@@ -1,5 +1,8 @@
 # git-context-graph
 
+[![Tests](https://github.com/Djuuu/git-context-graph/actions/workflows/test.yml/badge.svg)](https://github.com/Djuuu/git-context-graph/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/license-Beerware%20%F0%9F%8D%BA-yellow)](https://web.archive.org/web/20160322002352/http://www.cs.trincoll.edu/hfoss/wiki/Chris_Fei:_Beerware_License)
+
 Show graph log of branch with its remote counterparts and default repository branch.
 
 This is a shortcut to `git log --graph` which provides a middle ground between
