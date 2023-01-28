@@ -157,6 +157,19 @@ teardown() {
     run git-context-graph --list
     assert_line "refs/heads/custom"
     assert_line "refs/remotes/origin/custom"
+
+    cd ../
+    rm -rf repo
+
+    # consider local branch tracking remote default with a different name
+
+    git clone ./remote3 repo -b feature-C && cd repo
+    git switch -c local-custom origin/custom
+    git switch feature-C
+
+    run git-context-graph --list
+    assert_line "refs/heads/local-custom"
+    assert_line "refs/remotes/origin/custom"
 }
 
 @test "Default branch determination falls back to standard names" {

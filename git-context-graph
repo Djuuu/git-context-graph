@@ -161,8 +161,18 @@ default_branches() {
     for remote in $(git remote); do
         local remote_default
         remote_default=$(git symbolic-ref "refs/remotes/${remote}/HEAD" -- 2>/dev/null)
+
         if [[ -n $remote_default ]]; then
-            local short_default=${remote_default#"refs/remotes/${remote}/"}
+            local short_remote_default=${remote_default#"refs/remotes/"}
+
+            local short_tracking_default
+            short_tracking_default=$(git branch -vv | grep "$short_remote_default" | sed 's/^[* ]*//' | cut -d' ' -f1)
+
+            local short_default
+            [[ -n $short_tracking_default ]] &&
+                short_default="$short_tracking_default" ||
+                short_default=${remote_default#"refs/remotes/${remote}/"}
+
             default_branches="${default_branches}\n${short_default}"
         fi
     done
