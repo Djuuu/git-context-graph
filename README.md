@@ -9,7 +9,7 @@ This is a shortcut to `git log --graph` which provides a middle ground between
 showing _only a given branch_ (which might lack context) and showing _all_ branches 
 (which might get crowded on big projects).
 
-|                `git log --graph`                 |               `git log --graph --all`               |
+|           `git log --graph --oneline`            |          `git log --graph --oneline --all`          |
 |:------------------------------------------------:|:---------------------------------------------------:|
 | ![git log --graph](doc/git-log-graph-single.png) | ![git log --graph --all](doc/git-log-graph-all.png) |
 
