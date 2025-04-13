@@ -19,6 +19,7 @@ git-context-graph() {
 setup_file() {
     cd "${BATS_TEST_DIRNAME}" || exit
 
+    [[ -d data ]] && rm -rf data
     mkdir data && cd data || exit
 
     git init --bare -b main   remote1
@@ -118,6 +119,39 @@ teardown() {
 		refs/remotes/origin/feature-A
 		EOF
 	)"
+}
+
+@test "Patially matching branches are properly excluded" {
+    git clone ./remote1 repo && cd repo
+
+    # Other branch with name containing 'feature-A'
+    git switch -c backup/feature-A origin/feature-A --no-track
+    git push -u origin backup/feature-A
+
+    # Other branch with name containing 'main'
+    git switch -c old/main origin/main --no-track
+
+    git switch -c feature-A origin/feature-A
+
+    run git-context-graph --list
+    refute_line "refs/heads/backup/feature-A"
+    refute_line "refs/remotes/origin/backup/feature-A"
+    refute_line "refs/heads/old/main"
+
+    run git-context-graph --list --short
+    refute_line "backup/feature-A"
+    refute_line "origin/backup/feature-A"
+    refute_line "old/main"
+
+    run git-context-graph --list --local
+    refute_line "refs/heads/backup/feature-A"
+    refute_line "refs/heads/old/main"
+
+    run git-context-graph --list --no-default
+    refute_line "refs/heads/backup/feature-A"
+    refute_line "refs/remotes/origin/backup/feature-A"
+
+    git push origin --delete backup/feature-A
 }
 
 @test "Branches to list can be passed as arguments" {

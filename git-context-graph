@@ -102,14 +102,17 @@ branch_with_remotes() {
         return
     fi
 
-    local ref_pattern
-    [[ -z $GIT_CG_SHOW_LOCAL_ONLY ]] &&
-        ref_pattern="refs/**/$short_branch" ||
-        ref_pattern="refs/heads/$short_branch"
+    local ref_patterns=("refs/heads/$short_branch")
+    if [[ -z $GIT_CG_SHOW_LOCAL_ONLY ]]; then
+        local remote
+        for remote in $(git remote); do
+            ref_patterns+=("refs/remotes/${remote}/${short_branch}")
+        done
+    fi
 
     # Branches with same name on all remotes
     local same_name_refs;
-    same_name_refs=$(git for-each-ref --format="%(refname)" "$ref_pattern")
+    same_name_refs=$(git for-each-ref --format="%(refname)" "${ref_patterns[@]}")
     echo "$same_name_refs"
 
     [[ -n $GIT_CG_SHOW_LOCAL_ONLY ]] && return
