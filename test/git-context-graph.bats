@@ -353,6 +353,47 @@ teardown() {
 	)"
 }
 
+@test "Additional context branches can be toggled" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    git switch feature-A
+
+    # Not configured yet -> added
+    run git-context-graph --config-toggle feature-B
+    assert_output "$(cat <<- EOF
+		Additional context branches for feature-A:
+		  feature-B
+		EOF
+	)"
+
+    # Already configured -> removed
+    run git-context-graph --config-toggle feature-B
+    assert_output "$(cat <<- EOF
+		No additional context branches for feature-A.
+		EOF
+	)"
+
+    # Mixed batch: feature-B re-added, feature-C added
+    run git-context-graph --config-toggle feature-B
+    run git-context-graph --config-toggle feature-B feature-C
+    assert_output "$(cat <<- EOF
+		Additional context branches for feature-A:
+		  feature-C
+		EOF
+	)"
+
+    run git-context-graph --list --short --local --no-default
+    assert_output "$(cat <<- EOF
+		feature-A
+		feature-C
+		EOF
+	)"
+}
+
 @test "Available local branches are listed with context status" {
     git clone ./remote1 repo && cd repo
 

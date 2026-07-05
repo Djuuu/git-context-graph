@@ -20,6 +20,7 @@ ${b}SYNOPSIS${r}
 
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
@@ -47,6 +48,7 @@ ${b}DESCRIPTION${r}
 
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
            For a given branch, persist additional context branches to git configuration.
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
@@ -83,6 +85,9 @@ ${b}OPTIONS${r}
        -C|--config-clear) [<additional_branch>...]
            For a given branch, remove additional context branches from git configuration.
            If no additional branch is passed, all configured additional branches will be removed.
+
+       -T|--config-toggle) <additional_branch>...
+           For a given branch, toggle specified branches from context in git configuration.
 
        -h|--usage
            Show this help.
@@ -291,6 +296,9 @@ configure_additional_branches() {
         if [[ $GIT_CG_CONFIG_ADD -eq 1 ]]; then
             add_additional_branches "$branch" "${GIT_CG_ADD_BRANCHES[@]}"
         fi
+        if [[ $GIT_CG_CONFIG_TOGGLE -eq 1 ]]; then
+            toggle_additional_branches "$branch" "${GIT_CG_TOGGLE_BRANCHES[@]}"
+        fi
 
         local additional_branches
         additional_branches=$(additional_branches "$branch")
@@ -353,6 +361,31 @@ clear_additional_branches() {
     fi
 }
 
+toggle_additional_branches() {
+    local source_branch=$1
+    local additional_branches=("${@:2}")
+
+    if [[ -z $source_branch ]]; then
+        echo "No branch to configure." >&2
+        exit 1
+    fi
+    if [[ ${#additional_branches[@]} -eq 0 ]]; then
+        echo "No additional context branch." >&2
+        exit 1
+    fi
+
+    local branch
+    for branch in "${additional_branches[@]}"; do
+        local toggle=${branch#"refs/heads/"}
+
+        if additional_branches "$source_branch" | grep -qxF "$toggle"; then
+            clear_additional_branches "$source_branch" "$toggle" # already configured
+        else
+            add_additional_branches "$source_branch" "$toggle"   # not configured yet
+        fi
+    done
+}
+
 ################################################################################
 # Main
 
@@ -366,6 +399,7 @@ fi
 GIT_CG_BRANCHES=()
 GIT_CG_ADD_BRANCHES=()
 GIT_CG_CLEAR_BRANCHES=()
+GIT_CG_TOGGLE_BRANCHES=()
 GIT_LOG_OPTIONS=()
 GIT_LOG_PATHS=()
 while [[ $# -gt 0 ]]; do
@@ -380,18 +414,20 @@ while [[ $# -gt 0 ]]; do
 
         -v|--list-status) GIT_CG_LIST_AVAILABLE=1; shift ;;
 
-        -A|--config-add)   GIT_CG_CONFIGURE="add";   GIT_CG_CONFIG_ADD=1;   shift ;;
-        -C|--config-clear) GIT_CG_CONFIGURE="clear"; GIT_CG_CONFIG_CLEAR=1; shift ;;
+        -A|--config-add)    GIT_CG_CONFIGURE="add";    GIT_CG_CONFIG_ADD=1;    shift ;;
+        -C|--config-clear)  GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
+        -T|--config-toggle) GIT_CG_CONFIGURE="toggle"; GIT_CG_CONFIG_TOGGLE=1; shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
          *)
-            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]];   then GIT_LOG_PATHS+=("$1")         # git-log path argument (after '--')
-            elif [[ $GIT_CG_CONFIGURE == "add" ]];   then GIT_CG_ADD_BRANCHES+=("$1")   # additional branch to add to config
-            elif [[ $GIT_CG_CONFIGURE == "clear" ]]; then GIT_CG_CLEAR_BRANCHES+=("$1") # additional branch to remove from config
-            else                                          GIT_CG_BRANCHES+=("$1")       # git-context-graph branch argument
+            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]];    then GIT_LOG_PATHS+=("$1")          # git-log path argument (after '--')
+            elif [[ $GIT_CG_CONFIGURE == "add" ]];    then GIT_CG_ADD_BRANCHES+=("$1")    # additional branch to add to config
+            elif [[ $GIT_CG_CONFIGURE == "clear" ]];  then GIT_CG_CLEAR_BRANCHES+=("$1")  # additional branch to remove from config
+            elif [[ $GIT_CG_CONFIGURE == "toggle" ]]; then GIT_CG_TOGGLE_BRANCHES+=("$1") # additional branch to toggle in config
+            else                                           GIT_CG_BRANCHES+=("$1")        # git-context-graph branch argument
             fi; shift ;;
     esac
 done

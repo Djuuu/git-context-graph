@@ -26,7 +26,8 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 <code><b>git context-graph</b> <i>(-v|--list-status)</i></code>  
 
 <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
-<code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>
+<code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>  
+<code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-T|--config-toggle) &lt;additional_branch&gt;...</i></code>  
 
 <code><b>git context-graph</b> <i>(-h|--usage)</i></code>
 
@@ -56,6 +57,7 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 
 * <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
   <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>  
+  <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-T|--config-toggle) &lt;additional_branch&gt;...</i></code>  
   For a given branch, persist additional context branches to git configuration.
 
 * <code><b>git context-graph</b> <i>(-h|--usage)</i></code>  
@@ -94,6 +96,9 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * `-C`|`--config-clear` `[<additional_branch>...]`  
   For a given branch, remove additional context branches from git configuration.  
   If no additional branch is passed, all configured additional branches will be removed.
+
+* `-T`|`--config-toggle` `<additional_branch>...`  
+  For a given branch, toggle specified branches from context in git configuration.
 
 * `-h`|`--usage`  
   Show command usage.
