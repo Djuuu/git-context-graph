@@ -16,6 +16,7 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
 
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
 
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
@@ -39,6 +40,10 @@ ${b}DESCRIPTION${r}
 
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
            List branches that would be shown in the graph (does not display graph).
+
+       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
+           List local branches, flagging those in the current branch's context.
+           ' * ' current / reference, '[*]' in context, '[ ]' not in context.
 
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
@@ -67,6 +72,10 @@ ${b}OPTIONS${r}
        -s|--short
            Use short branch names when listing branches (without 'refs/heads/' or 'refs/remotes/').
            Implies --list.
+
+       -v|--list-status
+           List local branches, flagging those in the current branch's context.
+           ' * ' current / reference, '[*]' in context, '[ ]' not in context.
 
        -A|--config-add) <additional_branch>...
            For a given branch, persist additional context branches to git configuration.
@@ -223,6 +232,42 @@ context_branches() {
     echo "$context_branches"
 }
 
+list_available_branches() {
+    local ref_branch=${1:-$(git_current_branch)}
+
+    # Default branch(es) are excluded from the listing
+    local defaults
+    defaults=$(default_branches)
+
+    # Reference branch's context, local + short names (reuses existing logic).
+    # Pass ref_branch only when set (empty on a detached HEAD)
+    local context
+    context=$(\
+        GIT_CG_SHOW_LOCAL_ONLY=1 \
+        GIT_CG_SHOW_RELATED_ONLY=1 \
+        GIT_CG_LIST_SHORT=1 \
+        context_branches ${ref_branch:+"$ref_branch"})
+
+    # Display reference branch first
+    [[ -n $ref_branch ]] &&
+        ! grep -qxF "$ref_branch" <<< "$defaults" &&
+        echo -e " * \t${ref_branch}"
+
+    local branch status
+    while IFS= read -r branch; do
+        grep -qxF "$branch" <<< "$defaults" && continue
+
+        if [[ $branch == "$ref_branch" ]]; then
+            continue
+        elif grep -qxF "$branch" <<< "$context"; then
+            status='[*]'
+        else
+            status='[ ]'
+        fi
+        printf '%s\t%s\n' "$status" "$branch"
+    done < <(git for-each-ref --format='%(refname:short)' refs/heads/)
+}
+
 ################################################################################
 # Additional branch configuration functions
 
@@ -333,6 +378,8 @@ while [[ $# -gt 0 ]]; do
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
         -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
+        -v|--list-status) GIT_CG_LIST_AVAILABLE=1; shift ;;
+
         -A|--config-add)   GIT_CG_CONFIGURE="add";   GIT_CG_CONFIG_ADD=1;   shift ;;
         -C|--config-clear) GIT_CG_CONFIGURE="clear"; GIT_CG_CONFIG_CLEAR=1; shift ;;
 
@@ -357,6 +404,10 @@ if [[ -n $GIT_CG_CONFIGURE ]]; then
 fi
 
 # Alternative outputs
+if [[ -n $GIT_CG_LIST_AVAILABLE ]]; then
+    list_available_branches "${GIT_CG_BRANCHES[@]}"
+    exit $?
+fi
 if [[ -n $GIT_CG_LIST ]]; then
     context_branches "${GIT_CG_BRANCHES[@]}"
     exit 0

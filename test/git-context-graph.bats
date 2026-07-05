@@ -352,3 +352,69 @@ teardown() {
 		EOF
 	)"
 }
+
+@test "Available local branches are listed with context status" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    git switch feature-A
+    run git-context-graph --config-add feature-B
+
+    run git-context-graph --list-status
+    assert_success
+    assert_output "$(cat <<- EOF
+		 * 	feature-A
+		[*]	feature-B
+		[ ]	feature-C
+		EOF
+	)"
+    refute_output --partial "main"
+
+    git switch feature-B
+    run git-context-graph --config-add feature-C
+    run git-context-graph --list-status
+    assert_success
+    assert_output "$(cat <<- EOF
+		 * 	feature-B
+		[ ]	feature-A
+		[*]	feature-C
+		EOF
+    )"
+
+    run git-context-graph feature-A --list-status
+    assert_success
+    assert_output "$(cat <<- EOF
+		 * 	feature-A
+		[*]	feature-B
+		[ ]	feature-C
+		EOF
+    )"
+
+    # On the default branch: all branches listed, none flagged as current
+    git switch main
+    run git-context-graph --list-status
+    assert_success
+    assert_output "$(cat <<- EOF
+		[ ]	feature-A
+		[ ]	feature-B
+		[ ]	feature-C
+		EOF
+	)"
+    refute_output --partial "main"
+
+    # On a detached HEAD: all branches listed, none flagged as current
+    git switch feature-A
+    git switch --detach
+    run git-context-graph --list-status
+    assert_success
+    assert_output "$(cat <<- EOF
+		[ ]	feature-A
+		[ ]	feature-B
+		[ ]	feature-C
+		EOF
+	)"
+    refute_output --partial "main"
+}

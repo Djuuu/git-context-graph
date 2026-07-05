@@ -23,6 +23,7 @@ showing _only a given branch_ (which might lack context) and showing _all_ branc
 <code><b>git context-graph</b> <i>[&lt;git-log options&gt;...] [&lt;options&gt;...] [&lt;branch&gt;...] [-- &lt;paths&gt;...]</i></code>  
 
 <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;]</i></code>  
+<code><b>git context-graph</b> <i>(-v|--list-status)</i></code>  
 
 <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
 <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>
@@ -48,6 +49,10 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 
 * <code><b>git context-graph</b> <i>(-l|--list) [-s|--short] [&lt;branch&gt;...]</i></code>  
   List branches that would be shown in the graph (does not display graph).
+
+* <code><b>git context-graph</b> <i>(-v|--list-status)</i></code>  
+  List local branches, flagging those in the current branch's context.  
+  `' * '` current / reference, `'[*]'` in context, `'[ ]'` not in context.
 
 * <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-A|--config-add) &lt;additional_branch&gt;...</i></code>  
   <code><b>git context-graph</b> <i>[&lt;branch&gt;...] (-C|--config-clear) [&lt;additional_branch&gt;...]</i></code>  
@@ -78,6 +83,10 @@ git log --color --graph --abbrev-commit --decorate --pretty=oneline \
 * `-s`|`--short`  
   Use short branch names when listing branches (without `refs/heads/` or `refs/remotes/`).  
   Implies `--list`.
+
+* `-v`|`--list-status`  
+  List local branches, flagging those in the current branch's context.  
+  `' * '` current / reference, `'[*]'` in context, `'[ ]'` not in context.
 
 * `-A`|`--config-add` `<additional_branch>...`  
   For a given branch, persist additional context branches to git configuration.
