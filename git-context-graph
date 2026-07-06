@@ -16,9 +16,12 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
 
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
+       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
 
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
@@ -40,8 +43,14 @@ ${b}DESCRIPTION${r}
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
            List branches that would be shown in the graph (does not display graph).
 
+       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
+           List local branches, flagging those in the current branch's context.
+           ' * ' current / reference, '[*]' in context, '[ ]' not in context.
+
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
            For a given branch, persist additional context branches to git configuration.
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
@@ -68,12 +77,22 @@ ${b}OPTIONS${r}
            Use short branch names when listing branches (without 'refs/heads/' or 'refs/remotes/').
            Implies --list.
 
+       -v|--list-status
+           List local branches, flagging those in the current branch's context.
+           ' * ' current / reference, '[*]' in context, '[ ]' not in context.
+
        -A|--config-add) <additional_branch>...
            For a given branch, persist additional context branches to git configuration.
 
        -C|--config-clear) [<additional_branch>...]
            For a given branch, remove additional context branches from git configuration.
            If no additional branch is passed, all configured additional branches will be removed.
+
+       -T|--config-toggle) <additional_branch>...
+           For a given branch, toggle specified branches from context in git configuration.
+
+       -S|--config-sync
+           Synchronize context across a set of branches, so each branch references all the others.
 
        -h|--usage
            Show this help.
@@ -223,6 +242,42 @@ context_branches() {
     echo "$context_branches"
 }
 
+list_available_branches() {
+    local ref_branch=${1:-$(git_current_branch)}
+
+    # Default branch(es) are excluded from the listing
+    local defaults
+    defaults=$(default_branches)
+
+    # Reference branch's context, local + short names (reuses existing logic).
+    # Pass ref_branch only when set (empty on a detached HEAD)
+    local context
+    context=$(\
+        GIT_CG_SHOW_LOCAL_ONLY=1 \
+        GIT_CG_SHOW_RELATED_ONLY=1 \
+        GIT_CG_LIST_SHORT=1 \
+        context_branches ${ref_branch:+"$ref_branch"})
+
+    # Display reference branch first
+    [[ -n $ref_branch ]] &&
+        ! grep -qxF "$ref_branch" <<< "$defaults" &&
+        echo -e " * \t${ref_branch}"
+
+    local branch status
+    while IFS= read -r branch; do
+        grep -qxF "$branch" <<< "$defaults" && continue
+
+        if [[ $branch == "$ref_branch" ]]; then
+            continue
+        elif grep -qxF "$branch" <<< "$context"; then
+            status='[*]'
+        else
+            status='[ ]'
+        fi
+        printf '%s\t%s\n' "$status" "$branch"
+    done < <(git for-each-ref --format='%(refname:short)' refs/heads/)
+}
+
 ################################################################################
 # Additional branch configuration functions
 
@@ -245,6 +300,9 @@ configure_additional_branches() {
         fi
         if [[ $GIT_CG_CONFIG_ADD -eq 1 ]]; then
             add_additional_branches "$branch" "${GIT_CG_ADD_BRANCHES[@]}"
+        fi
+        if [[ $GIT_CG_CONFIG_TOGGLE -eq 1 ]]; then
+            toggle_additional_branches "$branch" "${GIT_CG_TOGGLE_BRANCHES[@]}"
         fi
 
         local additional_branches
@@ -284,7 +342,7 @@ add_additional_branches() {
         [[ -z $(git for-each-ref --format="%(refname)" "refs/**/$add") ]] &&
             continue # unknown branch
 
-        [[ ! $(additional_branches "$source_branch") =~ $add ]] &&
+        additional_branches "$source_branch" | grep -qxF "$add" ||
             git config --local --add -- "branch.${source_branch}.context" "$add"
     done
 }
@@ -303,9 +361,67 @@ clear_additional_branches() {
     else
         local branch
         for branch in "${additional_branches[@]}"; do
-            git config --local --unset "branch.${source_branch}.context" "$branch"
+            git config --local --unset --fixed-value "branch.${source_branch}.context" "$branch"
         done
     fi
+}
+
+toggle_additional_branches() {
+    local source_branch=$1
+    local additional_branches=("${@:2}")
+
+    if [[ -z $source_branch ]]; then
+        echo "No branch to configure." >&2
+        exit 1
+    fi
+    if [[ ${#additional_branches[@]} -eq 0 ]]; then
+        echo "No additional context branch." >&2
+        exit 1
+    fi
+
+    local branch
+    for branch in "${additional_branches[@]}"; do
+        local toggle=${branch#"refs/heads/"}
+
+        if additional_branches "$source_branch" | grep -qxF "$toggle"; then
+            clear_additional_branches "$source_branch" "$toggle" # already configured
+        else
+            add_additional_branches "$source_branch" "$toggle"   # not configured yet
+        fi
+    done
+}
+
+sync_context_branches() {
+    # Set of branches to synchronize: reference branch(es) and their directly
+    # configured context branches (local, related-only, short names).
+    local sync_branches
+    sync_branches=$(\
+        GIT_CG_SHOW_LOCAL_ONLY=1 \
+        GIT_CG_SHOW_RELATED_ONLY=1 \
+        GIT_CG_LIST_SHORT=1 \
+        context_branches "${GIT_CG_BRANCHES[@]}")
+
+    local branches=()
+    local branch
+    while IFS= read -r branch; do
+        [[ -n $branch ]] && branches+=("$branch")
+    done <<< "$sync_branches"
+
+    if [[ ${#branches[@]} -lt 2 ]]; then
+        echo "Nothing to synchronize: less than two branches in context." >&2
+        exit 1
+    fi
+
+    # Make every branch in the set reference all the others (replace existing context).
+    # add_additional_branches skips the source branch itself, so the whole set can be passed.
+    local source
+    for source in "${branches[@]}"; do
+        clear_additional_branches "$source"
+        add_additional_branches "$source" "${branches[@]}"
+    done
+
+    echo "Synchronized context for branches:"
+    printf '  %s\n' "${branches[@]}"
 }
 
 ################################################################################
@@ -321,6 +437,7 @@ fi
 GIT_CG_BRANCHES=()
 GIT_CG_ADD_BRANCHES=()
 GIT_CG_CLEAR_BRANCHES=()
+GIT_CG_TOGGLE_BRANCHES=()
 GIT_LOG_OPTIONS=()
 GIT_LOG_PATHS=()
 while [[ $# -gt 0 ]]; do
@@ -333,18 +450,23 @@ while [[ $# -gt 0 ]]; do
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
         -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
-        -A|--config-add)   GIT_CG_CONFIGURE="add";   GIT_CG_CONFIG_ADD=1;   shift ;;
-        -C|--config-clear) GIT_CG_CONFIGURE="clear"; GIT_CG_CONFIG_CLEAR=1; shift ;;
+        -v|--list-status) GIT_CG_LIST_AVAILABLE=1; shift ;;
+
+        -A|--config-add)    GIT_CG_CONFIGURE="add";    GIT_CG_CONFIG_ADD=1;    shift ;;
+        -C|--config-clear)  GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
+        -T|--config-toggle) GIT_CG_CONFIGURE="toggle"; GIT_CG_CONFIG_TOGGLE=1; shift ;;
+        -S|--config-sync)   GIT_CG_CONFIGURE="sync"; shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
          *)
-            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]];   then GIT_LOG_PATHS+=("$1")         # git-log path argument (after '--')
-            elif [[ $GIT_CG_CONFIGURE == "add" ]];   then GIT_CG_ADD_BRANCHES+=("$1")   # additional branch to add to config
-            elif [[ $GIT_CG_CONFIGURE == "clear" ]]; then GIT_CG_CLEAR_BRANCHES+=("$1") # additional branch to remove from config
-            else                                          GIT_CG_BRANCHES+=("$1")       # git-context-graph branch argument
+            if   [[ ${#GIT_LOG_PATHS[@]} -gt 0 ]];    then GIT_LOG_PATHS+=("$1")          # git-log path argument (after '--')
+            elif [[ $GIT_CG_CONFIGURE == "add" ]];    then GIT_CG_ADD_BRANCHES+=("$1")    # additional branch to add to config
+            elif [[ $GIT_CG_CONFIGURE == "clear" ]];  then GIT_CG_CLEAR_BRANCHES+=("$1")  # additional branch to remove from config
+            elif [[ $GIT_CG_CONFIGURE == "toggle" ]]; then GIT_CG_TOGGLE_BRANCHES+=("$1") # additional branch to toggle in config
+            else                                           GIT_CG_BRANCHES+=("$1")        # git-context-graph branch argument
             fi; shift ;;
     esac
 done
@@ -352,11 +474,19 @@ done
 
 # Context branch configuration
 if [[ -n $GIT_CG_CONFIGURE ]]; then
-    configure_additional_branches
+    if [[ $GIT_CG_CONFIGURE == "sync" ]]; then
+        sync_context_branches
+    else
+        configure_additional_branches
+    fi
     exit 0
 fi
 
 # Alternative outputs
+if [[ -n $GIT_CG_LIST_AVAILABLE ]]; then
+    list_available_branches "${GIT_CG_BRANCHES[@]}"
+    exit $?
+fi
 if [[ -n $GIT_CG_LIST ]]; then
     context_branches "${GIT_CG_BRANCHES[@]}"
     exit 0
