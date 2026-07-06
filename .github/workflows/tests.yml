@@ -1,0 +1,56 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'doc/**'
+      - 'git-context-graph-completion.bash'
+      - 'LICENSE'
+      - 'README.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'doc/**'
+      - 'git-context-graph-completion.bash'
+      - 'LICENSE'
+      - 'README.md'
+
+jobs:
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Run ShellCheck
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install shellcheck
+          LC_ALL=C.UTF-8 shellcheck git-context-graph
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Show versions
+        run: |
+          bash --version
+          git --version
+
+      - name: Setup BATS
+        uses: mig4/setup-bats@v1
+        with:
+          bats-version: 1.13.0
+
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run tests
+        run: bats --print-output-on-failure --formatter tap ./test
