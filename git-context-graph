@@ -21,6 +21,7 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
@@ -49,6 +50,7 @@ ${b}DESCRIPTION${r}
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
        ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
            For a given branch, persist additional context branches to git configuration.
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
@@ -88,6 +90,9 @@ ${b}OPTIONS${r}
 
        -T|--config-toggle) <additional_branch>...
            For a given branch, toggle specified branches from context in git configuration.
+
+       -S|--config-sync
+           Synchronize context across a set of branches, so each branch references all the others.
 
        -h|--usage
            Show this help.
@@ -386,6 +391,39 @@ toggle_additional_branches() {
     done
 }
 
+sync_context_branches() {
+    # Set of branches to synchronize: reference branch(es) and their directly
+    # configured context branches (local, related-only, short names).
+    local sync_branches
+    sync_branches=$(\
+        GIT_CG_SHOW_LOCAL_ONLY=1 \
+        GIT_CG_SHOW_RELATED_ONLY=1 \
+        GIT_CG_LIST_SHORT=1 \
+        context_branches "${GIT_CG_BRANCHES[@]}")
+
+    local branches=()
+    local branch
+    while IFS= read -r branch; do
+        [[ -n $branch ]] && branches+=("$branch")
+    done <<< "$sync_branches"
+
+    if [[ ${#branches[@]} -lt 2 ]]; then
+        echo "Nothing to synchronize: less than two branches in context." >&2
+        exit 1
+    fi
+
+    # Make every branch in the set reference all the others (replace existing context).
+    # add_additional_branches skips the source branch itself, so the whole set can be passed.
+    local source
+    for source in "${branches[@]}"; do
+        clear_additional_branches "$source"
+        add_additional_branches "$source" "${branches[@]}"
+    done
+
+    echo "Synchronized context for branches:"
+    printf '  %s\n' "${branches[@]}"
+}
+
 ################################################################################
 # Main
 
@@ -417,6 +455,7 @@ while [[ $# -gt 0 ]]; do
         -A|--config-add)    GIT_CG_CONFIGURE="add";    GIT_CG_CONFIG_ADD=1;    shift ;;
         -C|--config-clear)  GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
         -T|--config-toggle) GIT_CG_CONFIGURE="toggle"; GIT_CG_CONFIG_TOGGLE=1; shift ;;
+        -S|--config-sync)   GIT_CG_CONFIGURE="sync"; shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
@@ -435,7 +474,11 @@ done
 
 # Context branch configuration
 if [[ -n $GIT_CG_CONFIGURE ]]; then
-    configure_additional_branches
+    if [[ $GIT_CG_CONFIGURE == "sync" ]]; then
+        sync_context_branches
+    else
+        configure_additional_branches
+    fi
     exit 0
 fi
 
