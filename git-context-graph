@@ -342,7 +342,7 @@ add_additional_branches() {
         [[ -z $(git for-each-ref --format="%(refname)" "refs/**/$add") ]] &&
             continue # unknown branch
 
-        [[ ! $(additional_branches "$source_branch") =~ $add ]] &&
+        additional_branches "$source_branch" | grep -qxF "$add" ||
             git config --local --add -- "branch.${source_branch}.context" "$add"
     done
 }
@@ -361,7 +361,7 @@ clear_additional_branches() {
     else
         local branch
         for branch in "${additional_branches[@]}"; do
-            git config --local --unset "branch.${source_branch}.context" "$branch"
+            git config --local --unset --fixed-value "branch.${source_branch}.context" "$branch"
         done
     fi
 }

@@ -394,6 +394,35 @@ teardown() {
 	)"
 }
 
+@test "Context branch names are matched exactly, not as regex substrings" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    # Branches whose names are substrings of one another
+    git branch feature-1
+    git branch feature-10
+
+    # Adding feature-1 must not be masked by an already-configured feature-10
+    run git-context-graph feature-A --config-add feature-10
+    run git-context-graph feature-A --config-add feature-1
+    assert_success
+    assert_output "$(cat <<- EOF
+		Additional context branches for feature-A:
+		  feature-10
+		  feature-1
+		EOF
+	)"
+
+    # Removing feature-1 must remove only feature-1, not fail on / drop feature-10
+    run git-context-graph feature-A --config-clear feature-1
+    assert_success
+    assert_output "$(cat <<- EOF
+		Additional context branches for feature-A:
+		  feature-10
+		EOF
+	)"
+}
+
 @test "Context can be synchronized across a set of branches" {
     git clone ./remote1 repo && cd repo
 
