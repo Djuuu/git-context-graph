@@ -437,8 +437,8 @@ teardown() {
     # Before sync: only feature-A references feature-B and feature-C
     run git-context-graph feature-B --list-status
     assert_output "$(cat <<- EOF
-		 * 	feature-B
 		[ ]	feature-A
+		 * 	feature-B
 		[ ]	feature-C
 		[ ]	feature-D
 		EOF
@@ -466,8 +466,8 @@ teardown() {
 
     run git-context-graph feature-B --list-status
     assert_output "$(cat <<- EOF
-		 * 	feature-B
 		[*]	feature-A
+		 * 	feature-B
 		[*]	feature-C
 		[ ]	feature-D
 		EOF
@@ -475,9 +475,9 @@ teardown() {
 
     run git-context-graph feature-C --list-status
     assert_output "$(cat <<- EOF
-		 * 	feature-C
 		[*]	feature-A
 		[*]	feature-B
+		 * 	feature-C
 		[ ]	feature-D
 		EOF
 	)"
@@ -526,8 +526,8 @@ teardown() {
     run git-context-graph --list-status
     assert_success
     assert_output "$(cat <<- EOF
-		 * 	feature-B
 		[ ]	feature-A
+		 * 	feature-B
 		[*]	feature-C
 		EOF
     )"

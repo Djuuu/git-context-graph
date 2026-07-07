@@ -242,7 +242,7 @@ context_branches() {
     echo "$context_branches"
 }
 
-list_available_branches() {
+list_branch_context_status() {
     local ref_branch=${1:-$(git_current_branch)}
 
     # Default branch(es) are excluded from the listing
@@ -258,17 +258,15 @@ list_available_branches() {
         GIT_CG_LIST_SHORT=1 \
         context_branches ${ref_branch:+"$ref_branch"})
 
-    # Display reference branch first
-    [[ -n $ref_branch ]] &&
-        ! grep -qxF "$ref_branch" <<< "$defaults" &&
-        echo -e " * \t${ref_branch}"
+    # Reference branch is listed inline (alphabetical) rather than pinned first,
+    # so the ordering stays stable across invocations.
 
     local branch status
     while IFS= read -r branch; do
         grep -qxF "$branch" <<< "$defaults" && continue
 
         if [[ $branch == "$ref_branch" ]]; then
-            continue
+            status=' * '
         elif grep -qxF "$branch" <<< "$context"; then
             status='[*]'
         else
@@ -450,7 +448,7 @@ while [[ $# -gt 0 ]]; do
         -l|--list)  GIT_CG_LIST=1;                      shift ;;
         -s|--short) GIT_CG_LIST=1; GIT_CG_LIST_SHORT=1; shift ;;
 
-        -v|--list-status) GIT_CG_LIST_AVAILABLE=1; shift ;;
+        -v|--list-status) GIT_CG_LIST_STATUS=1; shift ;;
 
         -A|--config-add)    GIT_CG_CONFIGURE="add";    GIT_CG_CONFIG_ADD=1;    shift ;;
         -C|--config-clear)  GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
@@ -483,8 +481,8 @@ if [[ -n $GIT_CG_CONFIGURE ]]; then
 fi
 
 # Alternative outputs
-if [[ -n $GIT_CG_LIST_AVAILABLE ]]; then
-    list_available_branches "${GIT_CG_BRANCHES[@]}"
+if [[ -n $GIT_CG_LIST_STATUS ]]; then
+    list_branch_context_status "${GIT_CG_BRANCHES[@]}"
     exit $?
 fi
 if [[ -n $GIT_CG_LIST ]]; then
