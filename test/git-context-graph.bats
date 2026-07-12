@@ -95,7 +95,7 @@ teardown() {
 		refs/remotes/origin/feature-A
 		refs/remotes/origin/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short
     assert_output "$(cat <<- EOF
@@ -104,21 +104,21 @@ teardown() {
 		origin/feature-A
 		origin/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --local
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/heads/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --no-default
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Patially matching branches are properly excluded" {
@@ -165,14 +165,14 @@ teardown() {
 		refs/heads/feature-B
 		refs/remotes/origin/feature-B
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --no-default >&3
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 
     run git-context-graph --add feature-A --list --no-default >&3
     assert_output "$(cat <<- EOF
@@ -181,7 +181,7 @@ teardown() {
 		refs/remotes/origin/feature-A
 		refs/remotes/origin/feature-B
 		EOF
-	)"
+    )"
 }
 
 @test "Default branch is determined from cloned remote HEAD" {
@@ -260,7 +260,7 @@ teardown() {
 		refs/remotes/other/feature-A
 		refs/remotes/other/main
 		EOF
-	)"
+    )"
 }
 
 @test "Tracking branches with different names are considered" {
@@ -275,7 +275,7 @@ teardown() {
 		refs/heads/feature-A-local
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Git-log options are passed to git-log" {
@@ -304,21 +304,21 @@ teardown() {
     assert_output "$(cat <<- EOF
 		No additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     run git-context-graph --config-add epic/big-feature
     assert_output "$(cat <<- EOF
 		Additional context branches for feature-A:
 		  epic/big-feature
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		epic/big-feature
 		feature-A
 		EOF
-	)"
+    )"
 
     git switch main
 
@@ -328,7 +328,7 @@ teardown() {
 		  feature-B
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --short --local --no-default
     assert_output "$(cat <<- EOF
@@ -336,7 +336,7 @@ teardown() {
 		feature-B
 		feature-C
 		EOF
-	)"
+    )"
 
     git switch feature-A
 
@@ -344,13 +344,13 @@ teardown() {
     assert_output "$(cat <<- EOF
 		Cleared additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Additional context branches can be toggled" {
@@ -368,14 +368,14 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-B
 		EOF
-	)"
+    )"
 
     # Already configured -> removed
     run git-context-graph --config-toggle feature-B
     assert_output "$(cat <<- EOF
 		No additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     # Mixed batch: feature-B re-added, feature-C added
     run git-context-graph --config-toggle feature-B
@@ -384,14 +384,14 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		feature-A
 		feature-C
 		EOF
-	)"
+    )"
 }
 
 @test "Context branch names are matched exactly, not as regex substrings" {
@@ -411,7 +411,7 @@ teardown() {
 		  feature-10
 		  feature-1
 		EOF
-	)"
+    )"
 
     # Removing feature-1 must remove only feature-1, not fail on / drop feature-10
     run git-context-graph feature-A --config-clear feature-1
@@ -420,7 +420,7 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-10
 		EOF
-	)"
+    )"
 }
 
 @test "Context can be synchronized across a set of branches" {
@@ -442,7 +442,7 @@ teardown() {
 		[ ]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     # Sync makes the whole set (feature-A, feature-B, feature-C) reference each other
     run git-context-graph --config-sync
@@ -453,7 +453,7 @@ teardown() {
 		  feature-B
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list-status
     assert_output "$(cat <<- EOF
@@ -462,7 +462,7 @@ teardown() {
 		[*]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-B --list-status
     assert_output "$(cat <<- EOF
@@ -471,7 +471,7 @@ teardown() {
 		[*]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-C --list-status
     assert_output "$(cat <<- EOF
@@ -480,7 +480,7 @@ teardown() {
 		 * 	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     # Sync replaces existing context (feature-D not part of the set is untouched,
     # but a branch's own pre-existing context outside the set is dropped)
@@ -493,7 +493,7 @@ teardown() {
 		feature-B
 		feature-C
 		EOF
-	)"
+    )"
 
     # Nothing to synchronize with a lone branch
     run git-context-graph feature-D --config-sync
@@ -518,7 +518,7 @@ teardown() {
 		[*]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
 
     git switch feature-B
@@ -550,7 +550,7 @@ teardown() {
 		[ ]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
 
     # On a detached HEAD: all branches listed, none flagged as current
@@ -563,6 +563,6 @@ teardown() {
 		[ ]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
 }
