@@ -101,6 +101,12 @@ git context-graph --config-toggle feature-a3   # toggle a branch in/out of curre
 git context-graph --config-sync   # make every branch in the set reference the others
 ```
 
+**Reset** the whole repository's context configuration - `--config-reset` (`-Z`):
+```bash
+# git context-graph -Z|--config-reset
+git context-graph --config-reset   # remove all branch context configuration (asks for confirmation)
+```
+
 To review context membership across the repository, list all local branches flagged by whether they belong to a branch's context:
 ```bash
 # git context-graph [<base_branch>] -v|--list-status
@@ -165,6 +171,9 @@ Example output:
 
 * `-S`|`--config-sync`  
   Synchronize context across a set of branches, so each branch references all the others.
+
+* `-Z`|`--config-reset`  
+  Remove all branch context configuration from the repository, after confirmation.
 
 ### Help
 

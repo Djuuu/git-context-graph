@@ -23,6 +23,7 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...]
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-S|--config-sync)
+       ${u}git${r} ${u}context-graph${r} (-Z|--config-reset)
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
@@ -61,6 +62,9 @@ ${b}DESCRIPTION${r}
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>...
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-S|--config-sync)
            Add, clear, toggle, or sync a branch's context (see OPTIONS).
+
+       ${u}git${r} ${u}context-graph${r} (-Z|--config-reset)
+           Remove all branch context configuration from the repository (see OPTIONS).
 
 ${b}ARGUMENTS${r}
        <base_branch>...
@@ -101,6 +105,9 @@ ${b}OPTIONS${r}
 
        -S|--config-sync
            Sync a set of branches, so each references all the others.
+
+       -Z|--config-reset
+           Remove all branch context configuration from the repository, after confirmation.
 
    ${b}Help${r}
        -h|--usage
@@ -430,6 +437,38 @@ sync_context_branches() {
     printf '  %s\n' "${branches[@]}"
 }
 
+reset_context_config() {
+    # All branches with configured context (keys look like 'branch.<name>.context')
+    local keys
+    keys=$(git config --local --name-only --get-regexp '^branch\..*\.context$' 2>/dev/null | sort -u)
+
+    if [[ -z $keys ]]; then
+        echo "No branch context configuration to reset."
+        return
+    fi
+
+    echo "This will remove context configuration for the following branches:"
+    local key
+    while IFS= read -r key; do
+        local branch=${key#"branch."}
+        branch=${branch%".context"}
+        echo "  $branch"
+    done <<< "$keys"
+
+    local reply
+    read -r -p "Proceed? [y/N] " reply
+    if [[ ! $reply =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        return
+    fi
+
+    while IFS= read -r key; do
+        git config --local --unset-all "$key"
+    done <<< "$keys"
+
+    echo "Branch context configuration removed."
+}
+
 ################################################################################
 # Main
 
@@ -463,6 +502,8 @@ while [[ $# -gt 0 ]]; do
         -T|--config-toggle) GIT_CG_CONFIGURE="toggle"; GIT_CG_CONFIG_TOGGLE=1; shift ;;
         -S|--config-sync)   GIT_CG_CONFIGURE="sync"; shift ;;
 
+        --config-reset)     GIT_CG_CONFIGURE="reset"; shift ;;
+
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
@@ -480,7 +521,9 @@ done
 
 # Context branch configuration
 if [[ -n $GIT_CG_CONFIGURE ]]; then
-    if [[ $GIT_CG_CONFIGURE == "sync" ]]; then
+    if [[ $GIT_CG_CONFIGURE == "reset" ]]; then
+        reset_context_config
+    elif [[ $GIT_CG_CONFIGURE == "sync" ]]; then
         sync_context_branches
     else
         configure_additional_branches

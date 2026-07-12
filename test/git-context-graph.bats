@@ -566,3 +566,55 @@ teardown() {
     )"
     refute_output --partial "main"
 }
+
+@test "Whole repository context configuration can be reset" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    # Configure context on two different branches
+    run git-context-graph feature-A --config-add feature-B
+    run git-context-graph feature-B --config-add feature-C
+
+    # Declining the confirmation leaves the configuration untouched
+    run git-context-graph --config-reset <<< "n"
+    assert_success
+    assert_output "$(cat <<- EOF
+		This will remove context configuration for the following branches:
+		  feature-A
+		  feature-B
+		Aborted.
+		EOF
+    )"
+    run git config --local --get-all branch.feature-A.context
+    assert_output "feature-B"
+
+    # Confirming removes context configuration for every branch
+    run git-context-graph --config-reset <<< "y"
+    assert_success
+    assert_output "$(cat <<- EOF
+		This will remove context configuration for the following branches:
+		  feature-A
+		  feature-B
+		Branch context configuration removed.
+		EOF
+    )"
+
+    run git-context-graph feature-A --config-add feature-C
+    run git config --local --get-all branch.feature-A.context
+    assert_output "feature-C"
+    run git config --local --get-all branch.feature-B.context
+    assert_output ""
+}
+
+@test "Resetting with no configuration reports nothing to reset" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+
+    run git-context-graph --config-reset <<< "y"
+    assert_success
+    assert_output "No branch context configuration to reset."
+}
