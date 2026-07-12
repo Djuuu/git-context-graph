@@ -212,3 +212,91 @@ Completion is available in `git-context-graph-completion.bash`. Source it in one
 ```bash
 . "/path/to/git-context-graph/git-context-graph-completion.bash"
 ```
+
+## Lazygit integration
+
+`git context-graph` pairs well with [Lazygit](https://github.com/jesseduffield/lazygit):
+use it as the log command for the branch and all-branches views, and wire a couple of
+custom keybindings to manage a branch's context without leaving the UI.
+
+### Log commands
+
+Point Lazygit's log views at `git context-graph` so they show each branch together with
+its context, rather than a single branch or every branch at once:
+
+```yaml
+git:
+  # Log shown for the selected branch
+  branchLogCmd: git context-graph --first-parent {{branchName}} --
+
+  # Logs cycled through in the "all branches" status view
+  allBranchesLogCmds:
+    - git context-graph --first-parent --all    --
+    - git context-graph --first-parent --reflog --
+    #- ...
+```
+
+Any `git-log` option can be added (e.g. `--pretty=custom-format`).
+
+<p align="center">
+  <img src="doc/lazygit-context-graph.png" alt="lazygit context graph"/>
+</p>
+
+### Managing context from the branches panel
+
+Add custom commands to toggle a branch in/out of the selected branch's context and sync across preset branches
+from the local branches panel.
+
+**Toggle a branch in/out of the selected branch's context**
+
+The menu is built from `--list-status`, so it lists every local branch flagged by its current membership:
+
+```yaml
+customCommands:
+  - key: '<alt+c>'
+    context: 'localBranches'
+    command: "git context-graph {{ .SelectedLocalBranch.Name }} --config-toggle {{ .Form.Branch }}"
+    description: "Toggle branch in current context"
+    output: log
+    prompts:
+      - type: 'menuFromCommand'
+        title: "Toggle branch in context of {{ .SelectedLocalBranch.Name }}"
+        key: 'Branch'
+        command: 'git context-graph {{ .SelectedLocalBranch.Name }} --list-status'
+        filter: '(?P<status>.*)\t(?P<branch>.*)'
+        valueFormat: '{{ .branch }}'
+        labelFormat: >-
+          {{ if eq .status " * " }}{{ .status | green | bold }} {{ .branch | underline }}{{ end }}
+          {{ if eq .status "[*]" }}{{ .status | green | bold }} {{ .branch | bold      }}{{ end }}
+          {{ if eq .status "[ ]" }}{{ .status | white        }} {{ .branch             }}{{ end }}
+```
+<p align="center">
+  <img src="doc/lazygit-context-toggle.png" alt="lazygit context toggle"/>
+</p>
+
+**Toggle a branch and sync the whole preset**
+
+Same menu, but appends `--sync` so the toggle is mirrored across every branch of the preset:
+
+```yaml
+  - key: '<ctrl+alt+c>'
+    context: 'localBranches'
+    command: "git context-graph {{ .SelectedLocalBranch.Name }} --config-toggle {{ .Form.Branch }} --sync"
+    description: "Toggle branch in current context preset (sync)"
+    output: log
+    prompts:
+      - type: 'menuFromCommand'
+        title: "Toggle branch in current context preset (sync)"
+        key: 'Branch'
+        command: 'git context-graph {{ .SelectedLocalBranch.Name }} --list-status'
+        filter: '(?P<status>.*)\t(?P<branch>.*)'
+        valueFormat: '{{ .branch }}'
+        labelFormat: >-
+          {{ if eq .status " * " }}{{ .status | green | bold }} {{ .branch | underline }}{{ end }}
+          {{ if eq .status "[*]" }}{{ .status | green | bold }} {{ .branch | bold      }}{{ end }}
+          {{ if eq .status "[ ]" }}{{ .status | white        }} {{ .branch             }}{{ end }}
+```
+
+<p align="center">
+  <img src="doc/lazygit-context-toggle-sync.png" alt="lazygit context toggle + sync"/>
+</p>
