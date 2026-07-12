@@ -4,65 +4,72 @@
 usage() {
     local b; b="$(printf '\e[1m')"
     local u; u="$(printf '\e[4m')"
+    local i; i="$(printf '\e[3m')"
     local r; r="$(printf '\e[0m')"
 
     cat <<EOF
 
 ${b}NAME${r}
-       ${u}git-context-graph${r} - Show graph log of branch, its remote counterparts and default branch.
+       ${u}git-context-graph${r} - Show graph log of branch, default branch, and their remote counterparts.
 
 ${b}SYNOPSIS${r}
-       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<branch>...]
-       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
+       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<base_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<base_branch>...] [-- <paths>...]
 
-       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
-       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
+       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<base_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>] (-v|--list-status)
 
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-A|--config-add) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-S|--config-sync)
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
 ${b}DESCRIPTION${r}
+   ${b}Principle${r}
        This command is a shortcut to:
 
-           git log --color --graph --abbrev-commit --decorate --pretty=oneline \\
-               my-branch origin/my-branch main origin/main ...
+           ${i}git log --color --graph --abbrev-commit --decorate --pretty=oneline \\
+               my-branch origin/my-branch \\
+               main      origin/main ...${r}
 
-       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<branch>...]
-           Show graph log of branch, its remote counterparts and default branch.
+       By default, a branch is shown along with the default branch ('main' / 'master'),
+       their remote counterparts, and its configured additional context branches.
 
-       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<branch>...] [-- <paths>...]
-           git-log options can be used to refine or customize the output
-           (see git-log documentation: https://git-scm.com/docs/git-log)
-           Ex:
-             git context-graph --pretty=medium -- some/path
+   ${b}Usage${r}
+       ${u}git${r} ${u}context-graph${r} [--local] [--no-default] [-a|--add] [<base_branch>...]
+           Show the context graph.
 
-       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<branch>...]
-           List branches that would be shown in the graph (does not display graph).
+       ${u}git${r} ${u}context-graph${r} [<git-log options>...] [<options>...] [<base_branch>...] [-- <paths>...]
+           Pass any git-log option through to refine the output (see https://git-scm.com/docs/git-log).
+           Ex: git context-graph --pretty=medium -- some/path
 
-       ${u}git${r} ${u}context-graph${r} (-v|--list-status)
+       ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<base_branch>...]
+           List the branches that would be shown, instead of drawing the graph.
+
+       ${u}git${r} ${u}context-graph${r} [<base_branch>] (-v|--list-status)
            List local branches, flagging those in the current branch's context.
            ' * ' current / reference, '[*]' in context, '[ ]' not in context.
 
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-A|--config-add) <additional_branch>...
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-C|--config-clear) [<additional_branch>...]
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-T|--config-toggle) <additional_branch>...
-       ${u}git${r} ${u}context-graph${r} [<branch>...] (-S|--config-sync)
-           For a given branch, persist additional context branches to git configuration.
+   ${b}Branch context configuration${r}
+       Context branches are persisted per branch (in branch.<name>.context) and
+       automatically included whenever you graph it.
 
-       ${u}git${r} ${u}context-graph${r} (-h|--usage)
-           Show this help.
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-A|--config-add) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>...
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-S|--config-sync)
+           Add, clear, toggle, or sync a branch's context (see OPTIONS).
 
 ${b}ARGUMENTS${r}
-       <branch>...
-           Branches to show graph for. If omitted, current branch will be used.
+       <base_branch>...
+           Branch(es) to show graph for. If omitted, current branch will be used.
 
 ${b}OPTIONS${r}
-       -a|--add
-           Consider <branch> arguments as additional branches (added to current branch).
+   ${b}Graphing${r}
+       -a|--add <additional_branch>...
+           Consider <additional_branch> argument(s) as additional branches (added to current branch).
 
        --local
            Show only local branches (ignore remotes).
@@ -70,6 +77,7 @@ ${b}OPTIONS${r}
        --no-default
            Show only related branches (local and remote), without default branch ('main' / 'master').
 
+   ${b}Listing${r}
        -l|--list
            List branches that would be shown in the graph (does not display graph).
 
@@ -81,22 +89,22 @@ ${b}OPTIONS${r}
            List local branches, flagging those in the current branch's context.
            ' * ' current / reference, '[*]' in context, '[ ]' not in context.
 
-       -A|--config-add) <additional_branch>...
-           For a given branch, persist additional context branches to git configuration.
+   ${b}Branch context configuration${r}
+       -A|--config-add <additional_branch>...
+           Persist additional context branches for a branch.
 
-       -C|--config-clear) [<additional_branch>...]
-           For a given branch, remove additional context branches from git configuration.
-           If no additional branch is passed, all configured additional branches will be removed.
+       -C|--config-clear [<additional_branch>...]
+           Remove context branches for a branch (all of them, if none specified).
 
-       -T|--config-toggle) <additional_branch>...
-           For a given branch, toggle specified branches from context in git configuration.
+       -T|--config-toggle <additional_branch>...
+           Toggle context branches for a branch.
 
        -S|--config-sync
-           Synchronize context across a set of branches, so each branch references all the others.
+           Sync a set of branches, so each references all the others.
 
+   ${b}Help${r}
        -h|--usage
            Show this help.
-
 EOF
 }
 
