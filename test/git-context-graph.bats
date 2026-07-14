@@ -121,7 +121,7 @@ teardown() {
     )"
 }
 
-@test "Patially matching branches are properly excluded" {
+@test "Partially matching branches are properly excluded" {
     git clone ./remote1 repo && cd repo
 
     # Other branch with name containing 'feature-A'
@@ -276,6 +276,123 @@ teardown() {
 		refs/remotes/origin/feature-A
 		EOF
     )"
+}
+
+@test "Stale tracking to a deleted remote branch is ignored" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-B origin/feature-B
+
+    # Simulate a remote branch deleted upstream: drop the local remote-tracking
+    # ref (as `fetch --prune` would) while branch.feature-B.merge config remains.
+    # (Deleting on the shared bare remote would corrupt other tests' fixtures.)
+    git update-ref -d refs/remotes/origin/feature-B
+    run git config --get branch.feature-B.merge
+    assert_output "refs/heads/feature-B"
+
+    # The now-missing remote-tracking ref must not be listed...
+    run git-context-graph --list --no-default
+    assert_output "refs/heads/feature-B"
+
+    # ...nor passed to git-log, which would fail on the unknown revision
+    run git-context-graph --no-default feature-B
+    assert_success
+}
+
+@test "split_remote_ref splits remote refs and leaves local names untouched" {
+    git clone ./remote1 repo && cd repo
+    git switch -c feature-A origin/feature-A
+
+    # The script runs its main body when sourced, so load just the helper in isolation
+    eval "$(sed -n '/^split_remote_ref()/,/^}/p' "${BATS_TEST_DIRNAME}"/../git-context-graph)"
+
+    assert_equal "$(split_remote_ref origin/feature-A)"              "$(printf 'origin\tfeature-A')"
+    assert_equal "$(split_remote_ref refs/remotes/origin/feature-A)" "$(printf 'origin\tfeature-A')"
+    assert_equal "$(split_remote_ref origin/epic/big-feature)"       "$(printf 'origin\tepic/big-feature')"
+    assert_equal "$(split_remote_ref main)"                          "$(printf '\tmain')"
+    assert_equal "$(split_remote_ref refs/heads/main)"               "$(printf '\tmain')"
+
+    # A local branch literally named like a remote ref stays local (not split)
+    git switch -c origin/weird origin/feature-A --no-track
+    assert_equal "$(split_remote_ref origin/weird)" "$(printf '\torigin/weird')"
+}
+
+@test "Remote branch argument focuses that remote" {
+    git clone ./remote1 repo && cd repo
+    git remote add other ../remote2
+    git fetch other
+
+    git switch -c feature-A origin/feature-A
+    git switch main
+
+    # Focus origin: local branch + default, on the focused remote only
+    run git-context-graph origin/feature-A --list
+    assert_output "$(cat <<- EOF
+		refs/heads/feature-A
+		refs/heads/main
+		refs/remotes/origin/feature-A
+		refs/remotes/origin/main
+		EOF
+    )"
+
+    # Full-ref form is equivalent
+    run git-context-graph refs/remotes/origin/feature-A --list
+    assert_output "$(cat <<- EOF
+		refs/heads/feature-A
+		refs/heads/main
+		refs/remotes/origin/feature-A
+		refs/remotes/origin/main
+		EOF
+    )"
+}
+
+@test "Remote branch argument without a local counterpart shows only the remote" {
+    git clone ./remote1 repo && cd repo
+    git remote add other ../remote2
+    git fetch other
+
+    # Only 'main' is checked out locally; feature-B exists on both remotes
+    run git-context-graph origin/feature-B --list --no-default
+    assert_output "$(cat <<- EOF
+		refs/remotes/origin/feature-B
+		EOF
+    )"
+}
+
+@test "Local branch named like a remote ref is treated as local, not focused" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c origin/weird origin/feature-A --no-track
+
+    run git-context-graph origin/weird --list --local --no-default
+    assert_output "$(cat <<- EOF
+		refs/heads/origin/weird
+		EOF
+    )"
+}
+
+@test "Remote focus also scopes configured context branches" {
+    git clone ./remote1 repo && cd repo
+    git remote add other ../remote2
+    git fetch other
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch feature-A
+
+    # feature-A carries feature-B as context (stored as a short local name)
+    run git-context-graph --config-add feature-B
+
+    run git-context-graph origin/feature-A --list --no-default
+    assert_output "$(cat <<- EOF
+		refs/heads/feature-A
+		refs/heads/feature-B
+		refs/remotes/origin/feature-A
+		refs/remotes/origin/feature-B
+		EOF
+    )"
+    refute_line "refs/remotes/other/feature-A"
+    refute_line "refs/remotes/other/feature-B"
 }
 
 @test "Git-log options are passed to git-log" {

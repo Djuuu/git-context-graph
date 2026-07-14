@@ -132,6 +132,23 @@ git_current_branch() {
         git rev-parse --abbrev-ref HEAD
 }
 
+split_remote_ref() {
+    # Print "<remote>\t<short_branch>" for a remote ref, or "\t<short_branch>" otherwise
+    local branch=${1#"refs/heads/"}
+    local remote="" full r
+    full=$(git rev-parse --symbolic-full-name "$branch" 2>/dev/null)
+    if [[ $full == refs/remotes/* ]]; then
+        for r in $(git remote); do
+            if [[ $full == "refs/remotes/${r}/"* ]]; then
+                remote=$r
+                branch=${full#"refs/remotes/${r}/"}
+                break
+            fi
+        done
+    fi
+    printf '%s\t%s\n' "$remote" "$branch"
+}
+
 branch_with_remotes() {
     local branch=${1:-$(git_current_branch)}
 
@@ -158,10 +175,13 @@ branch_with_remotes() {
 
     [[ -n $GIT_CG_SHOW_LOCAL_ONLY ]] && return
 
-    # Remote tracking branch (in case name is different)
+    # Remote tracking branch (in case name is different), only if it still exists
     local tracking_remote;
-    tracking_remote=$(git for-each-ref --format='%(upstream)' "$(git rev-parse --symbolic-full-name "$branch" 2> /dev/null)")
-    [[ ! $same_name_refs =~ $tracking_remote ]] && echo "$tracking_remote"
+    tracking_remote=$(git rev-parse --verify --quiet --symbolic-full-name "${short_branch}@{upstream}")
+
+    [[ -n $tracking_remote ]] &&
+        [[ ! $same_name_refs =~ $tracking_remote ]] && # skip if already in $same_name_refs
+        echo "$tracking_remote"
 }
 
 ################################################################################
@@ -255,6 +275,10 @@ context_branches() {
 
     # de-duplicate and remove blank lines
     context_branches=$(echo -e "${context_branches}" | sort -u | grep "\S")
+
+    # in remote-focus mode, keep only local branches and the focused remote's refs
+    [[ -n $GIT_CG_REMOTE ]] && context_branches=$(echo "$context_branches" |
+        grep -E "^refs/heads/|^refs/remotes/${GIT_CG_REMOTE}/")
 
     # short branch listing
     [[ -n $GIT_CG_LIST_SHORT ]] && context_branches=$(echo "$context_branches" |
@@ -577,7 +601,18 @@ while [[ $# -gt 0 ]]; do
             elif [[ $GIT_CG_CONFIGURE == "add" ]];    then GIT_CG_ADD_BRANCHES+=("$1")    # additional branch to add to config
             elif [[ $GIT_CG_CONFIGURE == "clear" ]];  then GIT_CG_CLEAR_BRANCHES+=("$1")  # additional branch to remove from config
             elif [[ $GIT_CG_CONFIGURE == "toggle" ]]; then GIT_CG_TOGGLE_BRANCHES+=("$1") # additional branch to toggle in config
-            else                                           GIT_CG_BRANCHES+=("$1")        # git-context-graph branch argument
+            else
+                # git-context-graph branch argument
+
+                # Detect remote branch arguments and extract remote and short branch name.
+                # Remote will be focused (other remotes hidden). Last remote wins if several.
+                split=$(split_remote_ref "$1")
+                branch=${split#*$'\t'}
+                remote=${split%%$'\t'*}
+                [[ -n $remote ]] && GIT_CG_REMOTE=$remote
+
+                GIT_CG_BRANCHES+=("$branch")
+
             fi; shift ;;
     esac
 done
@@ -595,6 +630,7 @@ if [[ -n $GIT_CG_CONFIGURE || -n $GIT_CG_CONFIG_SYNC ]]; then
     fi
     exit 0
 fi
+
 
 # Alternative outputs
 if [[ -n $GIT_CG_LIST_STATUS ]]; then
