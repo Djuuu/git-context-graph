@@ -3,14 +3,9 @@
 load "test_helper/bats-support/load"
 load "test_helper/bats-assert/load"
 
-
-git() {
-    command git \
-        -c init.defaultBranch=main \
-        -c user.email=test@example.com \
-        -c user.name=Test \
-        "$@"
-}
+# Isolate the whole test run from current user's git config.
+export GIT_CONFIG_GLOBAL="${BATS_TEST_DIRNAME}/.gitconfig"
+export GIT_CONFIG_SYSTEM=/dev/null
 
 git-context-graph() {
     "${BATS_TEST_DIRNAME}"/../git-context-graph "$@"
@@ -877,27 +872,38 @@ teardown() {
     run git-context-graph feature-A --config-add feature-B
     run git-context-graph feature-B --config-add feature-C
 
+    # Persist a fold preference too
+    run git-context-graph --fold
+    run git config --local --get context-graph.first-parent
+    assert_output "true"
+
     # Declining the confirmation leaves the configuration untouched
     run git-context-graph --config-reset <<< "n"
     assert_success
     assert_output "$(cat <<- EOF
-		This will remove context configuration for the following branches:
-		  feature-A
-		  feature-B
+		This will remove the following context-graph configuration:
+		  branch context:
+		    feature-A
+		    feature-B
+		  context-graph.first-parent (true)
 		Aborted.
 		EOF
     )"
     run git config --local --get-all branch.feature-A.context
     assert_output "feature-B"
+    run git config --local --get context-graph.first-parent
+    assert_output "true"
 
     # Confirming removes context configuration for every branch
     run git-context-graph --config-reset <<< "y"
     assert_success
     assert_output "$(cat <<- EOF
-		This will remove context configuration for the following branches:
-		  feature-A
-		  feature-B
-		Branch context configuration removed.
+		This will remove the following context-graph configuration:
+		  branch context:
+		    feature-A
+		    feature-B
+		  context-graph.first-parent (true)
+		Context-graph configuration removed.
 		EOF
     )"
 
@@ -905,6 +911,8 @@ teardown() {
     run git config --local --get-all branch.feature-A.context
     assert_output "feature-C"
     run git config --local --get-all branch.feature-B.context
+    assert_output ""
+    run git config --local --get context-graph.first-parent
     assert_output ""
 }
 
@@ -915,5 +923,66 @@ teardown() {
 
     run git-context-graph --config-reset <<< "y"
     assert_success
-    assert_output "No branch context configuration to reset."
+    assert_output "No context-graph configuration to reset."
+}
+
+@test "--fold / --unfold control first-parent and persist to config" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+
+    # Merge a side branch so a commit is only reachable via the merge's second parent
+    git switch -c side --no-track
+    git commit --allow-empty -m "Side commit"
+    git switch feature-A
+    git merge --no-ff --no-edit -m "Merge side" side
+
+    # No stored preference: default off -> full graph shows the merged-in commit
+    run git-context-graph --pretty=oneline --no-color
+    assert_output --partial "Side commit"
+
+    # --unfold with a base branch renders the full graph and stores 'false'
+    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    assert_output --partial "Side commit"
+    run git config --local --get context-graph.first-parent
+    assert_output "false"
+
+    # --fold with no base branch is a config-op: stores 'true', no graph output
+    run git-context-graph --fold
+    assert_success
+    assert_output ""
+    run git config --local --get context-graph.first-parent
+    assert_output "true"
+
+    # Stored 'true' now folds the default graph: merged-in commit hidden, merge kept
+    run git-context-graph --pretty=oneline --no-color
+    refute_output --partial "Side commit"
+    assert_output --partial "Merge side"
+
+    # Explicit --unfold overrides the stored value for the run
+    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    assert_output --partial "Side commit"
+}
+
+@test "--fold-toggle flips the stored first-parent value" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+
+    # From unset (effective false) -> toggles on, no graph output (config-op)
+    run git-context-graph --fold-toggle
+    assert_success
+    assert_output ""
+    run git config --local --get context-graph.first-parent
+    assert_output "true"
+
+    # -> toggles off
+    run git-context-graph --fold-toggle
+    run git config --local --get context-graph.first-parent
+    assert_output "false"
+
+    # -> toggles on again
+    run git-context-graph --fold-toggle
+    run git config --local --get context-graph.first-parent
+    assert_output "true"
 }
