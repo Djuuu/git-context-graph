@@ -59,6 +59,12 @@ Any `git-log` option can be passed through to refine or customize the output
 git context-graph --pretty=medium -- some/path
 ```
 
+Passing a **remote** branch (e.g. `origin/my-branch`) _focuses_ that single remote.  
+Counterparts on other remotes are left out of the graph (though they still appear as labels when they point at commits already shown).
+```bash
+git context-graph origin/my-branch
+```
+
 ### Listing branches
 
 Instead of drawing the graph, list the branches involved:
