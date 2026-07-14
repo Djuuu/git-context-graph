@@ -24,7 +24,7 @@ _git_context_graph() {
         --*)
             __gitcomp "
             --add --local --no-default --list --short --list-status --usage
-            --config-add --config-clear --config-toggle --config-sync
+            --config-add --config-clear --config-toggle --config-reset --sync
             --all --branches --tags --remotes
             --simplify-merges --simplify-by-decoration
             --abbrev-commit --no-abbrev-commit --abbrev=

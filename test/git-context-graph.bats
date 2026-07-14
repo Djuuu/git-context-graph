@@ -95,7 +95,7 @@ teardown() {
 		refs/remotes/origin/feature-A
 		refs/remotes/origin/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short
     assert_output "$(cat <<- EOF
@@ -104,21 +104,21 @@ teardown() {
 		origin/feature-A
 		origin/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --local
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/heads/main
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --no-default
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Patially matching branches are properly excluded" {
@@ -165,14 +165,14 @@ teardown() {
 		refs/heads/feature-B
 		refs/remotes/origin/feature-B
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --no-default >&3
     assert_output "$(cat <<- EOF
 		refs/heads/feature-A
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 
     run git-context-graph --add feature-A --list --no-default >&3
     assert_output "$(cat <<- EOF
@@ -181,7 +181,7 @@ teardown() {
 		refs/remotes/origin/feature-A
 		refs/remotes/origin/feature-B
 		EOF
-	)"
+    )"
 }
 
 @test "Default branch is determined from cloned remote HEAD" {
@@ -260,7 +260,7 @@ teardown() {
 		refs/remotes/other/feature-A
 		refs/remotes/other/main
 		EOF
-	)"
+    )"
 }
 
 @test "Tracking branches with different names are considered" {
@@ -275,7 +275,7 @@ teardown() {
 		refs/heads/feature-A-local
 		refs/remotes/origin/feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Git-log options are passed to git-log" {
@@ -304,21 +304,21 @@ teardown() {
     assert_output "$(cat <<- EOF
 		No additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     run git-context-graph --config-add epic/big-feature
     assert_output "$(cat <<- EOF
 		Additional context branches for feature-A:
 		  epic/big-feature
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		epic/big-feature
 		feature-A
 		EOF
-	)"
+    )"
 
     git switch main
 
@@ -328,7 +328,7 @@ teardown() {
 		  feature-B
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list --short --local --no-default
     assert_output "$(cat <<- EOF
@@ -336,7 +336,7 @@ teardown() {
 		feature-B
 		feature-C
 		EOF
-	)"
+    )"
 
     git switch feature-A
 
@@ -344,13 +344,13 @@ teardown() {
     assert_output "$(cat <<- EOF
 		Cleared additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		feature-A
 		EOF
-	)"
+    )"
 }
 
 @test "Additional context branches can be toggled" {
@@ -368,14 +368,14 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-B
 		EOF
-	)"
+    )"
 
     # Already configured -> removed
     run git-context-graph --config-toggle feature-B
     assert_output "$(cat <<- EOF
 		No additional context branches for feature-A.
 		EOF
-	)"
+    )"
 
     # Mixed batch: feature-B re-added, feature-C added
     run git-context-graph --config-toggle feature-B
@@ -384,14 +384,14 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		feature-A
 		feature-C
 		EOF
-	)"
+    )"
 }
 
 @test "Context branch names are matched exactly, not as regex substrings" {
@@ -411,7 +411,7 @@ teardown() {
 		  feature-10
 		  feature-1
 		EOF
-	)"
+    )"
 
     # Removing feature-1 must remove only feature-1, not fail on / drop feature-10
     run git-context-graph feature-A --config-clear feature-1
@@ -420,7 +420,7 @@ teardown() {
 		Additional context branches for feature-A:
 		  feature-10
 		EOF
-	)"
+    )"
 }
 
 @test "Context can be synchronized across a set of branches" {
@@ -442,10 +442,10 @@ teardown() {
 		[ ]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     # Sync makes the whole set (feature-A, feature-B, feature-C) reference each other
-    run git-context-graph --config-sync
+    run git-context-graph --sync
     assert_success
     assert_output "$(cat <<- EOF
 		Synchronized context for branches:
@@ -453,7 +453,7 @@ teardown() {
 		  feature-B
 		  feature-C
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-A --list-status
     assert_output "$(cat <<- EOF
@@ -462,7 +462,7 @@ teardown() {
 		[*]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-B --list-status
     assert_output "$(cat <<- EOF
@@ -471,7 +471,7 @@ teardown() {
 		[*]	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     run git-context-graph feature-C --list-status
     assert_output "$(cat <<- EOF
@@ -480,25 +480,207 @@ teardown() {
 		 * 	feature-C
 		[ ]	feature-D
 		EOF
-	)"
+    )"
 
     # Sync replaces existing context (feature-D not part of the set is untouched,
     # but a branch's own pre-existing context outside the set is dropped)
     git switch feature-B
     run git-context-graph --config-add feature-D
-    run git-context-graph feature-A --config-sync
+    run git-context-graph feature-A --sync
     run git-context-graph feature-B --list --short --local --no-default
     assert_output "$(cat <<- EOF
 		feature-A
 		feature-B
 		feature-C
 		EOF
-	)"
+    )"
 
     # Nothing to synchronize with a lone branch
-    run git-context-graph feature-D --config-sync
+    run git-context-graph feature-D --sync
     assert_failure
     assert_output --partial "Nothing to synchronize"
+}
+
+@test "Context edits are propagated to the whole preset with --sync" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    git switch feature-A
+
+    # Seed a two-branch preset (feature-A <-> feature-B) in a single call
+    run git-context-graph --config-add feature-B --sync
+    assert_success
+    assert_output "$(cat <<- EOF
+		Synchronized context for branches:
+		  feature-A
+		  feature-B
+		EOF
+    )"
+
+    # Adding feature-C with --sync mirrors it across the whole set
+    run git-context-graph --config-add feature-C --sync
+    assert_success
+    assert_output "$(cat <<- EOF
+		Synchronized context for branches:
+		  feature-A
+		  feature-B
+		  feature-C
+		EOF
+    )"
+
+    # Every branch now references the other two
+    run git-context-graph feature-B --list-status
+    assert_output "$(cat <<- EOF
+		[*]	feature-A
+		 * 	feature-B
+		[*]	feature-C
+		EOF
+    )"
+
+    run git-context-graph feature-C --list-status
+    assert_output "$(cat <<- EOF
+		[*]	feature-A
+		[*]	feature-B
+		 * 	feature-C
+		EOF
+    )"
+}
+
+@test "Removing from a preset with --sync detaches the branch, preserving unrelated context" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+    git switch -c feature-D origin/epic/big-feature
+
+    git switch feature-A
+
+    # Build a three-branch preset
+    run git-context-graph --config-add feature-B feature-C --sync
+
+    # feature-C also carries an unrelated context branch (feature-D)
+    run git-context-graph feature-C --config-add feature-D
+
+    # Toggle feature-C out of feature-A's context, then sync
+    run git-context-graph --config-toggle feature-C --sync
+    assert_success
+    assert_output "$(cat <<- EOF
+		Synchronized context for branches:
+		  feature-A
+		  feature-B
+		Detached from preset:
+		  feature-C
+		EOF
+    )"
+
+    # feature-A and feature-B reference each other, no longer feature-C
+    run git-context-graph feature-A --list-status
+    assert_output "$(cat <<- EOF
+		 * 	feature-A
+		[*]	feature-B
+		[ ]	feature-C
+		[ ]	feature-D
+		EOF
+    )"
+
+    # feature-C dropped the preset members but kept its unrelated context (feature-D)
+    run git-context-graph feature-C --list --short --local --no-default
+    assert_output "$(cat <<- EOF
+		feature-C
+		feature-D
+		EOF
+    )"
+}
+
+@test "Clearing a branch's context with --sync empties the whole preset" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+    git switch -c feature-D origin/epic/big-feature
+
+    git switch feature-A
+    run git-context-graph --config-add feature-B feature-C --sync
+
+    # feature-B also carries an unrelated context branch (feature-D)
+    run git-context-graph feature-B --config-add feature-D
+
+    # Clearing the source's whole context + --sync tears the preset down:
+    # every member drops the others, keeping only unrelated context
+    run git-context-graph --config-clear --sync
+    assert_success
+    assert_output "$(cat <<- EOF
+		Context preset for feature-A is now empty.
+		Detached from preset:
+		  feature-B
+		  feature-C
+		EOF
+    )"
+
+    run git-context-graph feature-A --list --short --local --no-default
+    assert_output "feature-A"
+
+    # feature-B and feature-C no longer reference each other or feature-A
+    run git-context-graph feature-C --list-status
+    assert_output "$(cat <<- EOF
+		[ ]	feature-A
+		[ ]	feature-B
+		 * 	feature-C
+		[ ]	feature-D
+		EOF
+    )"
+
+    # feature-B kept only its unrelated context (feature-D)
+    run git-context-graph feature-B --list --short --local --no-default
+    assert_output "$(cat <<- EOF
+		feature-B
+		feature-D
+		EOF
+    )"
+}
+
+@test "--sync rejects more than one source branch" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    run git-context-graph feature-B feature-C --config-add feature-A --sync
+    assert_failure
+    assert_output --partial "single branch"
+}
+
+@test "--sync used on its own synchronizes a branch's existing context" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    # feature-B references feature-C; a bare --sync mirrors the whole set
+    git switch feature-B
+    run git-context-graph --config-add feature-C
+    run git-context-graph --sync
+    assert_success
+    assert_output "$(cat <<- EOF
+		Synchronized context for branches:
+		  feature-B
+		  feature-C
+		EOF
+    )"
+
+    # feature-C now references feature-B in return
+    run git-context-graph feature-C --list --short --local --no-default
+    assert_output "$(cat <<- EOF
+		feature-B
+		feature-C
+		EOF
+    )"
 }
 
 @test "Available local branches are listed with context status" {
@@ -518,7 +700,7 @@ teardown() {
 		[*]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
 
     git switch feature-B
@@ -550,7 +732,7 @@ teardown() {
 		[ ]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
 
     # On a detached HEAD: all branches listed, none flagged as current
@@ -563,6 +745,58 @@ teardown() {
 		[ ]	feature-B
 		[ ]	feature-C
 		EOF
-	)"
+    )"
     refute_output --partial "main"
+}
+
+@test "Whole repository context configuration can be reset" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+    git switch -c feature-B origin/feature-B
+    git switch -c feature-C origin/feature-C
+
+    # Configure context on two different branches
+    run git-context-graph feature-A --config-add feature-B
+    run git-context-graph feature-B --config-add feature-C
+
+    # Declining the confirmation leaves the configuration untouched
+    run git-context-graph --config-reset <<< "n"
+    assert_success
+    assert_output "$(cat <<- EOF
+		This will remove context configuration for the following branches:
+		  feature-A
+		  feature-B
+		Aborted.
+		EOF
+    )"
+    run git config --local --get-all branch.feature-A.context
+    assert_output "feature-B"
+
+    # Confirming removes context configuration for every branch
+    run git-context-graph --config-reset <<< "y"
+    assert_success
+    assert_output "$(cat <<- EOF
+		This will remove context configuration for the following branches:
+		  feature-A
+		  feature-B
+		Branch context configuration removed.
+		EOF
+    )"
+
+    run git-context-graph feature-A --config-add feature-C
+    run git config --local --get-all branch.feature-A.context
+    assert_output "feature-C"
+    run git config --local --get-all branch.feature-B.context
+    assert_output ""
+}
+
+@test "Resetting with no configuration reports nothing to reset" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+
+    run git-context-graph --config-reset <<< "y"
+    assert_success
+    assert_output "No branch context configuration to reset."
 }
