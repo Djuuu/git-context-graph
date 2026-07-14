@@ -621,6 +621,8 @@ while [[ $# -gt 0 ]]; do
                            then GIT_CG_FIRST_PARENT=off
                            else GIT_CG_FIRST_PARENT=on
                        fi; shift ;;
+        --no-first-parent)
+                       GIT_CG_NO_FIRST_PARENT=true; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
@@ -687,7 +689,7 @@ fi
     [[ $(git config --get --bool context-graph.first-parent 2> /dev/null) == true ]] &&
     GIT_CG_FIRST_PARENT=on
 # - add git option if appropriate
-[[ $GIT_CG_FIRST_PARENT == on ]] &&
+[[ $GIT_CG_FIRST_PARENT == on && -z $GIT_CG_NO_FIRST_PARENT ]] &&
     GIT_LOG_OPTIONS+=(--first-parent)
 
 
