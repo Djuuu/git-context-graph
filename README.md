@@ -155,6 +155,10 @@ Example output:
 * `--no-default`  
   Show only related branches (local and remote), without default branch.
 
+* `--fold`|`--unfold`|`--fold-toggle`  
+  Show first-parent history only (`--fold`) or the full graph (`--unfold`), or flip the current setting (`--fold-toggle`).  
+  Folding mode is persisted to the local git configuration (`context-graph.first-parent`).
+
 ### Listing
 
 * `-l`|`--list`  
@@ -186,7 +190,7 @@ Example output:
   A branch removed from the preset is detached from all its members, keeping only unrelated context.
 
 * `-Z`|`--config-reset`  
-  Remove all branch context configuration from the repository, after confirmation.
+  Remove all context-graph configuration from the repository (branch context, folding preference).
 
 ### Help
 
@@ -233,7 +237,7 @@ its context, rather than a single branch or every branch at once:
 ```yaml
 git:
   # Log shown for the selected branch
-  branchLogCmd: git context-graph --first-parent {{branchName}} --
+  branchLogCmd: git context-graph {{branchName}} --
 
   # Logs cycled through in the "all branches" status view
   allBranchesLogCmds:
@@ -247,6 +251,25 @@ Any `git-log` option can be added (e.g. `--pretty=custom-format`).
 <p align="center">
   <img src="doc/lazygit-context-graph.png" alt="lazygit context graph"/>
 </p>
+
+### Toggling merged branch folding (`--first-parent`)
+
+Add a custom command to toggle merged branch folding in graph log view.
+
+Suggestion: use `<a>` (same as "Show/cycle all branch logs" (`allBranchesLogGraph`) in status tab.
+
+```yaml
+customCommands:
+  - key: '<a>'
+    context: 'localBranches,remoteBranches'
+    command: "git context-graph --fold-toggle"
+    description: "Toggle folding in branch graph log"
+    output: none
+```
+
+|                                                                         |                                                                     |
+|:-----------------------------------------------------------------------:|:-------------------------------------------------------------------:|
+| ![lazygit context graph --unfold](doc/lazygit-context-graph-unfold.png) | ![lazygit context graph --fold](doc/lazygit-context-graph-fold.png) |
 
 ### Managing context from the branches panel
 
@@ -288,11 +311,11 @@ Same menu, but appends `--sync` so the toggle is mirrored across every branch of
   - key: '<ctrl+alt+c>'
     context: 'localBranches'
     command: "git context-graph {{ .SelectedLocalBranch.Name }} --config-toggle {{ .Form.Branch }} --sync"
-    description: "Toggle branch in current context preset (sync)"
+    description: "Toggle branch in current context preset (+sync)"
     output: log
     prompts:
       - type: 'menuFromCommand'
-        title: "Toggle branch in current context preset (sync)"
+        title: "Toggle branch in current context preset (+sync)"
         key: 'Branch'
         command: 'git context-graph {{ .SelectedLocalBranch.Name }} --list-status'
         filter: '(?P<status>.*)\t(?P<branch>.*)'

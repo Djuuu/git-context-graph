@@ -1,0 +1,9 @@
+[init]
+    defaultBranch = main
+
+[user]
+    email = test@example.com
+    name = Test
+
+[context-graph]
+    first-parent = false

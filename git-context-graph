@@ -23,6 +23,9 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...] [-S|--sync]
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>... [-S|--sync]
        ${u}git${r} ${u}context-graph${r} [<base_branch>]    (-S|--sync)
+
+       ${u}git${r} ${u}context-graph${r} (--fold|--unfold|--fold-toggle) [<base_branch>...]
+
        ${u}git${r} ${u}context-graph${r} (-Z|--config-reset)
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
@@ -84,6 +87,10 @@ ${b}OPTIONS${r}
        --no-default
            Show only related branches (local and remote), without default branch ('main' / 'master').
 
+       --fold|--unfold|--fold-toggle
+           Show first-parent history only (--fold) or the full graph (--unfold), or flip the current
+           setting (--fold-toggle), and persist the choice to local git configuration.
+
    ${b}Listing${r}
        -l|--list
            List branches that would be shown in the graph (does not display graph).
@@ -114,7 +121,7 @@ ${b}OPTIONS${r}
            keeping only unrelated context.
 
        -Z|--config-reset
-           Remove all branch context configuration from the repository, after confirmation.
+           Remove all context-graph configuration from the repository.
 
    ${b}Help${r}
        -h|--usage
@@ -531,18 +538,27 @@ reset_context_config() {
     local keys
     keys=$(git config --local --name-only --get-regexp '^branch\..*\.context$' 2>/dev/null | sort -u)
 
-    if [[ -z $keys ]]; then
-        echo "No branch context configuration to reset."
+    # Fold preference, persisted by --fold / --unfold
+    local first_parent
+    first_parent=$(git config --local --get context-graph.first-parent 2>/dev/null)
+
+    if [[ -z $keys && -z $first_parent ]]; then
+        echo "No context-graph configuration to reset."
         return
     fi
 
-    echo "This will remove context configuration for the following branches:"
-    local key
-    while IFS= read -r key; do
-        local branch=${key#"branch."}
-        branch=${branch%".context"}
-        echo "  $branch"
-    done <<< "$keys"
+    echo "This will remove the following context-graph configuration:"
+    local key branch
+    if [[ -n $keys ]]; then
+        echo "  branch context:"
+        while IFS= read -r key; do
+            branch=${key#"branch."}
+            branch=${branch%".context"}
+            echo "    $branch"
+        done <<< "$keys"
+    fi
+    [[ -n $first_parent ]] &&
+        echo "  context-graph.first-parent ($first_parent)"
 
     local reply
     read -r -p "Proceed? [y/N] " reply
@@ -551,11 +567,15 @@ reset_context_config() {
         return
     fi
 
-    while IFS= read -r key; do
-        git config --local --unset-all "$key"
-    done <<< "$keys"
+    if [[ -n $keys ]]; then
+        while IFS= read -r key; do
+            git config --local --unset-all "$key"
+        done <<< "$keys"
+    fi
+    [[ -n $first_parent ]] &&
+        git config --local --unset context-graph.first-parent
 
-    echo "Branch context configuration removed."
+    echo "Context-graph configuration removed."
 }
 
 ################################################################################
@@ -574,6 +594,7 @@ GIT_CG_CLEAR_BRANCHES=()
 GIT_CG_TOGGLE_BRANCHES=()
 GIT_LOG_OPTIONS=()
 GIT_LOG_PATHS=()
+GIT_CG_FIRST_PARENT=
 while [[ $# -gt 0 ]]; do
     case $1 in
         -a|--add) GIT_CG_ADD_TO_CURRENT=1; shift ;;
@@ -593,6 +614,13 @@ while [[ $# -gt 0 ]]; do
         -S|--sync)          GIT_CG_CONFIG_SYNC=1;      shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
+
+        --fold)        GIT_CG_FIRST_PARENT=on;  shift ;;
+        --unfold)      GIT_CG_FIRST_PARENT=off; shift ;;
+        --fold-toggle) if [[ $(git config --get --bool context-graph.first-parent 2> /dev/null) == true ]]
+                           then GIT_CG_FIRST_PARENT=off
+                           else GIT_CG_FIRST_PARENT=on
+                       fi; shift ;;
 
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
@@ -645,6 +673,22 @@ if [[ -n $GIT_CONTEXT_GRAPH_HELP ]]; then
     usage
     exit 0
 fi
+
+
+# Folding (--first-parent)
+# - persist choice if explicit
+if [[ -n $GIT_CG_FIRST_PARENT ]]; then
+    [[ $GIT_CG_FIRST_PARENT == on  ]] && git config --local context-graph.first-parent true
+    [[ $GIT_CG_FIRST_PARENT == off ]] && git config --local context-graph.first-parent false
+    [[ ${#GIT_CG_BRANCHES[@]} -eq 0 ]] && exit 0 # with no base branch, act as a config-op (no graph)
+fi
+# - resolve config value without explicit option
+[[ -z $GIT_CG_FIRST_PARENT ]] &&
+    [[ $(git config --get --bool context-graph.first-parent 2> /dev/null) == true ]] &&
+    GIT_CG_FIRST_PARENT=on
+# - add git option if appropriate
+[[ $GIT_CG_FIRST_PARENT == on ]] &&
+    GIT_LOG_OPTIONS+=(--first-parent)
 
 
 # Show graph
