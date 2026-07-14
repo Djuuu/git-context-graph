@@ -175,10 +175,13 @@ branch_with_remotes() {
 
     [[ -n $GIT_CG_SHOW_LOCAL_ONLY ]] && return
 
-    # Remote tracking branch (in case name is different)
+    # Remote tracking branch (in case name is different), only if it still exists
     local tracking_remote;
-    tracking_remote=$(git for-each-ref --format='%(upstream)' "$(git rev-parse --symbolic-full-name "$branch" 2> /dev/null)")
-    [[ ! $same_name_refs =~ $tracking_remote ]] && echo "$tracking_remote"
+    tracking_remote=$(git rev-parse --verify --quiet --symbolic-full-name "${short_branch}@{upstream}")
+
+    [[ -n $tracking_remote ]] &&
+        [[ ! $same_name_refs =~ $tracking_remote ]] && # skip if already in $same_name_refs
+        echo "$tracking_remote"
 }
 
 ################################################################################

@@ -278,6 +278,27 @@ teardown() {
     )"
 }
 
+@test "Stale tracking to a deleted remote branch is ignored" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-B origin/feature-B
+
+    # Simulate a remote branch deleted upstream: drop the local remote-tracking
+    # ref (as `fetch --prune` would) while branch.feature-B.merge config remains.
+    # (Deleting on the shared bare remote would corrupt other tests' fixtures.)
+    git update-ref -d refs/remotes/origin/feature-B
+    run git config --get branch.feature-B.merge
+    assert_output "refs/heads/feature-B"
+
+    # The now-missing remote-tracking ref must not be listed...
+    run git-context-graph --list --no-default
+    assert_output "refs/heads/feature-B"
+
+    # ...nor passed to git-log, which would fail on the unknown revision
+    run git-context-graph --no-default feature-B
+    assert_success
+}
+
 @test "split_remote_ref splits remote refs and leaves local names untouched" {
     git clone ./remote1 repo && cd repo
     git switch -c feature-A origin/feature-A
