@@ -25,7 +25,7 @@ _git_context_graph() {
             __gitcomp "
             --local --no-default --add
             --list --short --list-status
-            --config-add --config-clear --config-toggle --sync
+            --config-add --config-toggle --config-clear --sync
             --fold --unfold --fold-toggle
             --config-reset --usage
             --all --branches --tags --remotes

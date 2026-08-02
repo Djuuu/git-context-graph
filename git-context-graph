@@ -19,14 +19,14 @@ ${b}SYNOPSIS${r}
        ${u}git${r} ${u}context-graph${r} (-l|--list) [-s|--short] [<base_branch>...]
        ${u}git${r} ${u}context-graph${r} [<base_branch>] (-v|--list-status)
 
-       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-A|--config-add) <additional_branch>... [-S|--sync]
-       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...] [-S|--sync]
-       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>... [-S|--sync]
-       ${u}git${r} ${u}context-graph${r} [<base_branch>]    (-S|--sync)
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-A|--config-add) <additional_branch>... [--sync]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>... [--sync]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] --config-clear [<additional_branch>...] [--sync]
+       ${u}git${r} ${u}context-graph${r} [<base_branch>]    --sync
 
        ${u}git${r} ${u}context-graph${r} (--fold|--unfold|--fold-toggle) [<base_branch>...]
 
-       ${u}git${r} ${u}context-graph${r} (-Z|--config-reset)
+       ${u}git${r} ${u}context-graph${r} --config-reset
 
        ${u}git${r} ${u}context-graph${r} (-h|--usage)
 
@@ -61,15 +61,15 @@ ${b}DESCRIPTION${r}
        automatically included whenever you graph it.
 
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-A|--config-add) <additional_branch>...
-       ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-C|--config-clear) [<additional_branch>...]
        ${u}git${r} ${u}context-graph${r} [<base_branch>...] (-T|--config-toggle) <additional_branch>...
-           Add, clear, or toggle a branch's context (see OPTIONS).
+       ${u}git${r} ${u}context-graph${r} [<base_branch>...] --config-clear [<additional_branch>...]
+           Add, toggle or clear a branch's context (see OPTIONS).
 
-       ${u}git${r} ${u}context-graph${r} [<base_branch>] [<config edit>] (-S|--sync)
+       ${u}git${r} ${u}context-graph${r} [<base_branch>] [<config edit>] --sync
            Synchronize a branch's context so that every member references all the others,
            or propagate a config edit to the whole preset (see OPTIONS).
 
-       ${u}git${r} ${u}context-graph${r} (-Z|--config-reset)
+       ${u}git${r} ${u}context-graph${r} --config-reset
            Remove all branch context configuration from the repository (see OPTIONS).
 
 ${b}ARGUMENTS${r}
@@ -107,20 +107,20 @@ ${b}OPTIONS${r}
        -A|--config-add <additional_branch>...
            Persist additional context branches for a branch.
 
-       -C|--config-clear [<additional_branch>...]
-           Remove context branches for a branch (all of them, if none specified).
-
        -T|--config-toggle <additional_branch>...
            Toggle context branches for a branch.
 
-       -S|--sync
+       --config-clear [<additional_branch>...]
+           Remove context branches for a branch (all of them, if none specified).
+
+       --sync
            Synchronize a branch's context into a shared preset where every branch in the set
            references all the others. Works on its own or propagates an edit to the whole preset
-           (--config-add/--config-clear/--config-toggle).
+           (--config-add/--config-toggle/--config-clear).
            A branch removed from the preset is detached from all its members,
            keeping only unrelated context.
 
-       -Z|--config-reset
+       --config-reset
            Remove all context-graph configuration from the repository.
 
    ${b}Help${r}
@@ -608,10 +608,10 @@ while [[ $# -gt 0 ]]; do
         -v|--list-status) GIT_CG_LIST_STATUS=1; shift ;;
 
         -A|--config-add)    GIT_CG_CONFIGURE="add";    GIT_CG_CONFIG_ADD=1;    shift ;;
-        -C|--config-clear)  GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
         -T|--config-toggle) GIT_CG_CONFIGURE="toggle"; GIT_CG_CONFIG_TOGGLE=1; shift ;;
-        -Z|--config-reset)  GIT_CG_CONFIGURE="reset";  shift ;;
-        -S|--sync)          GIT_CG_CONFIG_SYNC=1;      shift ;;
+        --config-clear)     GIT_CG_CONFIGURE="clear";  GIT_CG_CONFIG_CLEAR=1;  shift ;;
+        --config-reset)     GIT_CG_CONFIGURE="reset";  shift ;;
+        --sync)             GIT_CG_CONFIG_SYNC=1;      shift ;;
 
         -h|--usage) GIT_CONTEXT_GRAPH_HELP=1; shift ;;
 

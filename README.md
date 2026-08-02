@@ -86,35 +86,35 @@ git context-graph --config-add feature-a2            # add branch(es) to current
 git context-graph feature-a1 --config-add feature-a2 # ... or to a specific branch context
 ```
 
-**Clear** context branches - `--config-clear` (`-C`):
-```bash
-# git context-graph [<base_branch>...] -C|--config-clear [<additional_branch>...]
-git context-graph --config-clear                       # clear all configured context branches for current branch
-git context-graph --config-clear feature-a2            # ... or remove a specific branch from current branch context
-git context-graph feature-a1 --config-clear            # ... or clear all context branches for a specific branch
-git context-graph feature-a1 --config-clear feature-a2 # ... or remove a specific branch from a specific branch context
-```
-
 **Toggle** a branch in/out of a context - `--config-toggle` (`-T`):
 ```bash
 # git context-graph [<base_branch>...] -T|--config-toggle <additional_branch>...
 git context-graph --config-toggle feature-a3   # toggle a branch in/out of current branch context
 ```
 
-**Sync** a branch's context into a shared preset - `--sync` (`-S`):
+**Clear** context branches - `--config-clear`:
 ```bash
-# git context-graph [<base_branch>] [<config edit>] -S|--sync
+# git context-graph [<base_branch>...] --config-clear [<additional_branch>...]
+git context-graph --config-clear                       # clear all configured context branches for current branch
+git context-graph --config-clear feature-a2            # ... or remove a specific branch from current branch context
+git context-graph feature-a1 --config-clear            # ... or clear all context branches for a specific branch
+git context-graph feature-a1 --config-clear feature-a2 # ... or remove a specific branch from a specific branch context
+```
+
+**Sync** a branch's context into a shared preset - `--sync`:
+```bash
+# git context-graph [<base_branch>] [<config edit>] --sync
 git context-graph --sync                         # make every branch in the set reference the others
 git context-graph --config-add feature-a3 --sync # ... or apply an edit, then propagate it to the whole preset
 ```
 Used on its own, `--sync` mirrors a branch's context across the set so every member references all the others.
-Combined with `--config-add`/`--config-clear`/`--config-toggle`, the edit is applied and then synced:
+Combined with `--config-add`/`--config-toggle`/`--config-clear`, the edit is applied and then synced:
 a branch removed from the preset is detached from every member (keeping only its unrelated context),
 and clearing a branch's whole context tears the preset down.
 
-**Reset** the whole repository's context configuration - `--config-reset` (`-Z`):
+**Reset** the whole repository's context configuration - `--config-reset`:
 ```bash
-# git context-graph -Z|--config-reset
+# git context-graph --config-reset
 git context-graph --config-reset   # remove all branch context configuration (asks for confirmation)
 ```
 
@@ -177,19 +177,19 @@ Example output:
 * `-A`|`--config-add` `<additional_branch>...`  
   For a given branch, persist additional context branches to git configuration.
 
-* `-C`|`--config-clear` `[<additional_branch>...]`  
-  For a given branch, remove additional context branches from git configuration.  
-  If no additional branch is passed, all configured additional branches will be removed.
-
 * `-T`|`--config-toggle` `<additional_branch>...`  
   For a given branch, toggle specified branches from context in git configuration.
 
-* `-S`|`--sync`  
+* `--config-clear` `[<additional_branch>...]`  
+  For a given branch, remove additional context branches from git configuration.  
+  If no additional branch is passed, all configured additional branches will be removed.
+
+* `--sync`  
   Synchronize a branch's context into a shared preset where every branch in the set references all the others.  
-  Works on its own or propagates an edit to the whole preset (`--config-add`/`--config-clear`/`--config-toggle`).  
+  Works on its own or propagates an edit to the whole preset (`--config-add`/`--config-toggle`/`--config-clear`).  
   A branch removed from the preset is detached from all its members, keeping only unrelated context.
 
-* `-Z`|`--config-reset`  
+* `--config-reset`  
   Remove all context-graph configuration from the repository (branch context, folding preference).
 
 ### Help
