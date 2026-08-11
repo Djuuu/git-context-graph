@@ -624,6 +624,14 @@ while [[ $# -gt 0 ]]; do
         --no-first-parent)
                        GIT_CG_NO_FIRST_PARENT=true; shift ;;
 
+        # git-log options that take a value as a separate argument (e.g. '-S foo').
+        -S|-G|--author|--committer|--grep|--since|--after|--until|--before|-n|--max-count|--skip)
+            GIT_LOG_OPTIONS+=("$1"); shift
+            # Consume the next token as the value, unless it is '--' (path separator).
+            if [[ $# -gt 0 && $1 != "--" ]]; then
+                GIT_LOG_OPTIONS+=("$1"); shift
+            fi ;;
+
         --) GIT_LOG_PATHS+=("$1");   shift ;;
         -*) GIT_LOG_OPTIONS+=("$1"); shift ;;
          *)

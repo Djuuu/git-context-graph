@@ -402,6 +402,18 @@ teardown() {
     assert_output --partial "(origin/main, main) Main 1"
 }
 
+@test "Git-log options taking a separate value are not mistaken for branch arguments" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c feature-A origin/feature-A
+
+    run git-context-graph --all --pretty=oneline --no-color --grep "Feature A"
+    assert_success
+    assert_output --partial "Feature A - 1"
+    refute_output --partial "Epic B - 1"
+    refute_output --partial "Main 1"
+}
+
 @test "Persistent additional context branches can be configured" {
     git clone ./remote1 repo && cd repo
 
