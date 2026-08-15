@@ -29,6 +29,31 @@ This command is a shortcut to:
 By default, a branch is shown along with the default repository branch (`main` / `master`),
 their remote counterparts, plus any [additional context branches](#branch-context-configuration) you have configured.
 
+## Installation
+
+* Add the `git-context-graph` directory to your `PATH`<br>
+  in one of your shell startup scripts:
+  ```bash
+  PATH="${PATH}:/path/to/git-context-graph"
+  ```
+
+_OR_
+
+* Define it as a git alias:
+  ```bash
+  git config --global alias.cg '!bash /path/to/git-context-graph/git-context-graph'
+  ```
+  or edit your `~/.gitconfig` directly:
+  ```
+  [alias]
+  	cg = "!bash /path/to/git-context-graph/git-context-graph"
+  ```
+
+Completion is available in `git-context-graph-completion.bash`. Source it in one of your shell startup scripts:
+```bash
+. "/path/to/git-context-graph/git-context-graph-completion.bash"
+```
+
 ## Usage
 
 Show the graph for the current branch:
@@ -115,7 +140,7 @@ and clearing a branch's whole context tears the preset down.
 **Reset** the whole repository's context configuration - `--config-reset`:
 ```bash
 # git context-graph --config-reset
-git context-graph --config-reset   # remove all branch context configuration (asks for confirmation)
+git context-graph --config-reset   # remove all context-graph configuration (asks for confirmation)
 ```
 
 To review context membership across the repository, list all local branches flagged by whether they belong to a branch's context:
@@ -190,38 +215,36 @@ Example output:
   A branch removed from the preset is detached from all its members, keeping only unrelated context.
 
 * `--config-reset`  
-  Remove all context-graph configuration from the repository (branch context, folding preference).
+  Remove all context-graph configuration from the repository (branch context, folding preference, ref exclusions).
 
 ### Help
 
 * `-h`|`--usage`  
   Show command usage.
 
-## Installation
+## Configuration
 
-* Add the `git-context-graph` directory to your `PATH`<br>
-  in one of your shell startup scripts:
+* `context-graph.first-parent`  
+  Boolean. When `true`, `--first-parent` is added to the graph, folding merged branches.  
+  Set via `--fold`/`--unfold`/`--fold-toggle` (see [Options](#options)), or directly.
   ```bash
-  PATH="${PATH}:/path/to/git-context-graph"
+  git config --global context-graph.first-parent true
   ```
 
-_OR_ 
+* `context-graph.exclude`  
+  Git config multivar of fully-qualified ref glob patterns (`refs/heads/...`, `refs/tags/...`, `refs/remotes/...`)
+  to always exclude.
 
-* Define it as a git alias:<br>
-  run:
+  Injected as git log [`--exclude=<pattern>`](https://git-scm.com/docs/git-log#Documentation/git-log.txt---excludeglob-pattern)
+  before `--all`/`--branches`/`--tags`/`--remotes`/`--glob` options.  
+  `refs/heads`, `refs/tags` or `refs/remotes` prefixes are stripped as required by `--branches`/`--tags`/`--remotes`.
+
+  Patterns not scoped to one of those namespaces (e.g. using `**`) apply to all of `--branches`/`--tags`/`--remotes`,
+  as well as `--all`/`--glob`.
   ```bash
-  git config --global alias.cg '!bash /path/to/git-context-graph/git-context-graph'
+  git config --add context-graph.exclude 'refs/heads/wip/*'
+  git config --add context-graph.exclude 'refs/**/archive/*'
   ```
-  or edit your `~/.gitconfig` directly:
-  ```
-  [alias]
-  	cg = "!bash /path/to/git-context-graph/git-context-graph"
-  ```
-
-Completion is available in `git-context-graph-completion.bash`. Source it in one of your shell startup scripts:
-```bash
-. "/path/to/git-context-graph/git-context-graph-completion.bash"
-```
 
 ## Lazygit integration
 

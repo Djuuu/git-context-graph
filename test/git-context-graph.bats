@@ -395,7 +395,7 @@ teardown() {
 
     git switch -c feature-A origin/feature-A
 
-    run git-context-graph --all --pretty=oneline --no-color
+    run git-context-graph --all --no-color
     assert_output --partial "(origin/epic/big-feature) Epic B - 1"
     assert_output --partial "(HEAD -> feature-A, origin/feature-A) Feature A - 1"
     assert_output --partial "(origin/feature-B) Feature B - 1"
@@ -407,11 +407,102 @@ teardown() {
 
     git switch -c feature-A origin/feature-A
 
-    run git-context-graph --all --pretty=oneline --no-color --grep "Feature A"
+    run git-context-graph --all --no-color --grep "Feature A"
     assert_success
     assert_output --partial "Feature A - 1"
     refute_output --partial "Epic B - 1"
     refute_output --partial "Main 1"
+}
+
+@test "context-graph.exclude filters refs even when --all is used, regardless of argument order" {
+    git clone ./remote1 repo && cd repo
+
+    # No local branch tracks feature-B/feature-C/epic, so excluding their only (remote) ref
+    # removes their commit from the graph entirely.
+    git config --add context-graph.exclude 'refs/remotes/origin/feature-B'
+    run git-context-graph --all --no-color
+    assert_success
+    assert_output --partial "Feature C - 1"
+    assert_output --partial "Epic B - 1"
+    refute_output --partial "Feature B - 1"
+
+    # Multiple values (multivar) are all applied.
+    git config --add context-graph.exclude 'refs/remotes/origin/epic/big-feature'
+    run git-context-graph --all --no-color
+    assert_success
+    refute_output --partial "Feature B - 1"
+    refute_output --partial "Epic B - 1"
+    assert_output --partial "Feature C - 1"
+}
+
+@test "context-graph.exclude prefixes are stripped to match --branches/--remotes glob semantics" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c local-wip -q
+    git commit -q --allow-empty -m "Local WIP - 1"
+    git switch -q main
+
+    # Patterns stay fully-qualified in context-graph.exclude...
+    git config --add context-graph.exclude 'refs/heads/local-wip'
+    git config --add context-graph.exclude 'refs/remotes/origin/feature-B'
+
+    # ...but --branches requires a bare pattern (no refs/heads/ prefix) to match.
+    run git-context-graph --branches --no-color
+    assert_success
+    refute_output --partial "Local WIP - 1"
+    assert_output --partial "Main 1"
+
+    # ...and --remotes requires a bare pattern (no refs/remotes/ prefix) to match.
+    run git-context-graph --remotes --no-color
+    assert_success
+    refute_output --partial "Feature B - 1"
+    assert_output --partial "Feature C - 1"
+}
+
+@test "context-graph.exclude cross-namespace wildcard pattern applies to --branches/--tags/--remotes/--all" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c archive/local-wip -q
+    git commit -q --allow-empty -m "Archived local - 1"
+    git switch -q main
+
+    git switch -c archive/remote-wip -q
+    git commit -q --allow-empty -m "Archived remote - 1"
+    git push -q origin archive/remote-wip
+    git switch -q main
+    git branch -D archive/remote-wip -q
+
+    git switch -c tag-target -q
+    git commit -q --allow-empty -m "Archived tag target - 1"
+    git tag archive/v-old
+    git switch -q main
+    git branch -D tag-target -q
+
+    # A single wildcard pattern, not scoped to any specific ref namespace, applies to all of
+    # --branches/--tags/--remotes/--all (its '**' stands in for the heads/tags/<remote> segment).
+    git config --add context-graph.exclude 'refs/**/archive/*'
+
+    run git-context-graph --branches --no-color
+    assert_success
+    refute_output --partial "Archived local - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --remotes --no-color
+    assert_success
+    refute_output --partial "Archived remote - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --tags --no-color
+    assert_success
+    refute_output --partial "Archived tag target - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --all --no-color
+    assert_success
+    refute_output --partial "Archived local - 1"
+    refute_output --partial "Archived remote - 1"
+    refute_output --partial "Archived tag target - 1"
+    assert_output --partial "Main 1"
 }
 
 @test "Persistent additional context branches can be configured" {
@@ -886,8 +977,11 @@ teardown() {
 
     # Persist a fold preference too
     run git-context-graph --fold
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
+
+    # Persist an exclude pattern too
+    git config --add context-graph.exclude 'refs/heads/wip/*'
 
     # Declining the confirmation leaves the configuration untouched
     run git-context-graph --config-reset <<< "n"
@@ -898,13 +992,17 @@ teardown() {
 		    feature-A
 		    feature-B
 		  context-graph.first-parent (true)
+		  context-graph.exclude:
+		    refs/heads/wip/*
 		Aborted.
 		EOF
     )"
-    run git config --local --get-all branch.feature-A.context
+    run git config --get-all branch.feature-A.context
     assert_output "feature-B"
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
+    run git config --get-all context-graph.exclude
+    assert_output "refs/heads/wip/*"
 
     # Confirming removes context configuration for every branch
     run git-context-graph --config-reset <<< "y"
@@ -915,16 +1013,20 @@ teardown() {
 		    feature-A
 		    feature-B
 		  context-graph.first-parent (true)
+		  context-graph.exclude:
+		    refs/heads/wip/*
 		Context-graph configuration removed.
 		EOF
     )"
 
     run git-context-graph feature-A --config-add feature-C
-    run git config --local --get-all branch.feature-A.context
+    run git config --get-all branch.feature-A.context
     assert_output "feature-C"
-    run git config --local --get-all branch.feature-B.context
+    run git config --get-all branch.feature-B.context
     assert_output ""
     run git config --local --get context-graph.first-parent
+    assert_output ""
+    run git config --get-all context-graph.exclude
     assert_output ""
 }
 
@@ -950,29 +1052,29 @@ teardown() {
     git merge --no-ff --no-edit -m "Merge side" side
 
     # No stored preference: default off -> full graph shows the merged-in commit
-    run git-context-graph --pretty=oneline --no-color
+    run git-context-graph --no-color
     assert_output --partial "Side commit"
 
     # --unfold with a base branch renders the full graph and stores 'false'
-    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    run git-context-graph feature-A --unfold --no-color
     assert_output --partial "Side commit"
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "false"
 
     # --fold with no base branch is a config-op: stores 'true', no graph output
     run git-context-graph --fold
     assert_success
     assert_output ""
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # Stored 'true' now folds the default graph: merged-in commit hidden, merge kept
-    run git-context-graph --pretty=oneline --no-color
+    run git-context-graph --no-color
     refute_output --partial "Side commit"
     assert_output --partial "Merge side"
 
     # Explicit --unfold overrides the stored value for the run
-    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    run git-context-graph feature-A --unfold --no-color
     assert_output --partial "Side commit"
 }
 
@@ -985,16 +1087,16 @@ teardown() {
     run git-context-graph --fold-toggle
     assert_success
     assert_output ""
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # -> toggles off
     run git-context-graph --fold-toggle
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "false"
 
     # -> toggles on again
     run git-context-graph --fold-toggle
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 }
