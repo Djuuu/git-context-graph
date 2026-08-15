@@ -395,7 +395,7 @@ teardown() {
 
     git switch -c feature-A origin/feature-A
 
-    run git-context-graph --all --pretty=oneline --no-color
+    run git-context-graph --all --no-color
     assert_output --partial "(origin/epic/big-feature) Epic B - 1"
     assert_output --partial "(HEAD -> feature-A, origin/feature-A) Feature A - 1"
     assert_output --partial "(origin/feature-B) Feature B - 1"
@@ -407,7 +407,7 @@ teardown() {
 
     git switch -c feature-A origin/feature-A
 
-    run git-context-graph --all --pretty=oneline --no-color --grep "Feature A"
+    run git-context-graph --all --no-color --grep "Feature A"
     assert_success
     assert_output --partial "Feature A - 1"
     refute_output --partial "Epic B - 1"
@@ -886,7 +886,7 @@ teardown() {
 
     # Persist a fold preference too
     run git-context-graph --fold
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # Declining the confirmation leaves the configuration untouched
@@ -901,9 +901,9 @@ teardown() {
 		Aborted.
 		EOF
     )"
-    run git config --local --get-all branch.feature-A.context
+    run git config --get-all branch.feature-A.context
     assert_output "feature-B"
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # Confirming removes context configuration for every branch
@@ -920,9 +920,9 @@ teardown() {
     )"
 
     run git-context-graph feature-A --config-add feature-C
-    run git config --local --get-all branch.feature-A.context
+    run git config --get-all branch.feature-A.context
     assert_output "feature-C"
-    run git config --local --get-all branch.feature-B.context
+    run git config --get-all branch.feature-B.context
     assert_output ""
     run git config --local --get context-graph.first-parent
     assert_output ""
@@ -950,29 +950,29 @@ teardown() {
     git merge --no-ff --no-edit -m "Merge side" side
 
     # No stored preference: default off -> full graph shows the merged-in commit
-    run git-context-graph --pretty=oneline --no-color
+    run git-context-graph --no-color
     assert_output --partial "Side commit"
 
     # --unfold with a base branch renders the full graph and stores 'false'
-    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    run git-context-graph feature-A --unfold --no-color
     assert_output --partial "Side commit"
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "false"
 
     # --fold with no base branch is a config-op: stores 'true', no graph output
     run git-context-graph --fold
     assert_success
     assert_output ""
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # Stored 'true' now folds the default graph: merged-in commit hidden, merge kept
-    run git-context-graph --pretty=oneline --no-color
+    run git-context-graph --no-color
     refute_output --partial "Side commit"
     assert_output --partial "Merge side"
 
     # Explicit --unfold overrides the stored value for the run
-    run git-context-graph feature-A --unfold --pretty=oneline --no-color
+    run git-context-graph feature-A --unfold --no-color
     assert_output --partial "Side commit"
 }
 
@@ -985,16 +985,16 @@ teardown() {
     run git-context-graph --fold-toggle
     assert_success
     assert_output ""
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 
     # -> toggles off
     run git-context-graph --fold-toggle
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "false"
 
     # -> toggles on again
     run git-context-graph --fold-toggle
-    run git config --local --get context-graph.first-parent
+    run git config --get context-graph.first-parent
     assert_output "true"
 }
