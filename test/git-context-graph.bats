@@ -980,6 +980,9 @@ teardown() {
     run git config --get context-graph.first-parent
     assert_output "true"
 
+    # Persist an exclude pattern too
+    git config --add context-graph.exclude 'refs/heads/wip/*'
+
     # Declining the confirmation leaves the configuration untouched
     run git-context-graph --config-reset <<< "n"
     assert_success
@@ -989,6 +992,8 @@ teardown() {
 		    feature-A
 		    feature-B
 		  context-graph.first-parent (true)
+		  context-graph.exclude:
+		    refs/heads/wip/*
 		Aborted.
 		EOF
     )"
@@ -996,6 +1001,8 @@ teardown() {
     assert_output "feature-B"
     run git config --get context-graph.first-parent
     assert_output "true"
+    run git config --get-all context-graph.exclude
+    assert_output "refs/heads/wip/*"
 
     # Confirming removes context configuration for every branch
     run git-context-graph --config-reset <<< "y"
@@ -1006,6 +1013,8 @@ teardown() {
 		    feature-A
 		    feature-B
 		  context-graph.first-parent (true)
+		  context-graph.exclude:
+		    refs/heads/wip/*
 		Context-graph configuration removed.
 		EOF
     )"
@@ -1016,6 +1025,8 @@ teardown() {
     run git config --get-all branch.feature-B.context
     assert_output ""
     run git config --local --get context-graph.first-parent
+    assert_output ""
+    run git config --get-all context-graph.exclude
     assert_output ""
 }
 

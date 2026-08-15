@@ -115,7 +115,7 @@ and clearing a branch's whole context tears the preset down.
 **Reset** the whole repository's context configuration - `--config-reset`:
 ```bash
 # git context-graph --config-reset
-git context-graph --config-reset   # remove all branch context configuration (asks for confirmation)
+git context-graph --config-reset   # remove all context-graph configuration (asks for confirmation)
 ```
 
 To review context membership across the repository, list all local branches flagged by whether they belong to a branch's context:
@@ -190,7 +190,7 @@ Example output:
   A branch removed from the preset is detached from all its members, keeping only unrelated context.
 
 * `--config-reset`  
-  Remove all context-graph configuration from the repository (branch context, folding preference).
+  Remove all context-graph configuration from the repository (branch context, folding preference, ref exclusions).
 
 ### Help
 

@@ -70,7 +70,7 @@ ${b}DESCRIPTION${r}
            or propagate a config edit to the whole preset (see OPTIONS).
 
        ${u}git${r} ${u}context-graph${r} --config-reset
-           Remove all branch context configuration from the repository (see OPTIONS).
+           Remove all context-graph configuration from the repository (see OPTIONS, CONFIGURATION).
 
 ${b}ARGUMENTS${r}
        <base_branch>...
@@ -555,13 +555,17 @@ reset_context_config() {
     local first_parent
     first_parent=$(git config --local --get context-graph.first-parent 2>/dev/null)
 
-    if [[ -z $keys && -z $first_parent ]]; then
+    # Ref exclusion patterns, persisted as context-graph.exclude (multivar)
+    local exclude_patterns
+    exclude_patterns=$(git config --local --get-all context-graph.exclude 2>/dev/null)
+
+    if [[ -z $keys && -z $first_parent && -z $exclude_patterns ]]; then
         echo "No context-graph configuration to reset."
         return
     fi
 
     echo "This will remove the following context-graph configuration:"
-    local key branch
+    local key branch pattern
     if [[ -n $keys ]]; then
         echo "  branch context:"
         while IFS= read -r key; do
@@ -572,6 +576,12 @@ reset_context_config() {
     fi
     [[ -n $first_parent ]] &&
         echo "  context-graph.first-parent ($first_parent)"
+    if [[ -n $exclude_patterns ]]; then
+        echo "  context-graph.exclude:"
+        while IFS= read -r pattern; do
+            echo "    $pattern"
+        done <<< "$exclude_patterns"
+    fi
 
     local reply
     read -r -p "Proceed? [y/N] " reply
@@ -587,6 +597,8 @@ reset_context_config() {
     fi
     [[ -n $first_parent ]] &&
         git config --local --unset context-graph.first-parent
+    [[ -n $exclude_patterns ]] &&
+        git config --local --unset-all context-graph.exclude
 
     echo "Context-graph configuration removed."
 }
