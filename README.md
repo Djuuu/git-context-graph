@@ -29,6 +29,31 @@ This command is a shortcut to:
 By default, a branch is shown along with the default repository branch (`main` / `master`),
 their remote counterparts, plus any [additional context branches](#branch-context-configuration) you have configured.
 
+## Installation
+
+* Add the `git-context-graph` directory to your `PATH`<br>
+  in one of your shell startup scripts:
+  ```bash
+  PATH="${PATH}:/path/to/git-context-graph"
+  ```
+
+_OR_
+
+* Define it as a git alias:
+  ```bash
+  git config --global alias.cg '!bash /path/to/git-context-graph/git-context-graph'
+  ```
+  or edit your `~/.gitconfig` directly:
+  ```
+  [alias]
+  	cg = "!bash /path/to/git-context-graph/git-context-graph"
+  ```
+
+Completion is available in `git-context-graph-completion.bash`. Source it in one of your shell startup scripts:
+```bash
+. "/path/to/git-context-graph/git-context-graph-completion.bash"
+```
+
 ## Usage
 
 Show the graph for the current branch:
@@ -220,32 +245,6 @@ Example output:
   git config --add context-graph.exclude 'refs/heads/wip/*'
   git config --add context-graph.exclude 'refs/**/archive/*'
   ```
-
-## Installation
-
-* Add the `git-context-graph` directory to your `PATH`<br>
-  in one of your shell startup scripts:
-  ```bash
-  PATH="${PATH}:/path/to/git-context-graph"
-  ```
-
-_OR_ 
-
-* Define it as a git alias:<br>
-  run:
-  ```bash
-  git config --global alias.cg '!bash /path/to/git-context-graph/git-context-graph'
-  ```
-  or edit your `~/.gitconfig` directly:
-  ```
-  [alias]
-  	cg = "!bash /path/to/git-context-graph/git-context-graph"
-  ```
-
-Completion is available in `git-context-graph-completion.bash`. Source it in one of your shell startup scripts:
-```bash
-. "/path/to/git-context-graph/git-context-graph-completion.bash"
-```
 
 ## Lazygit integration
 
