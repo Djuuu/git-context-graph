@@ -128,6 +128,12 @@ ${b}OPTIONS${r}
            Show this help.
 
 ${b}CONFIGURATION${r}
+       context-graph.first-parent
+           Boolean. When true, --first-parent is added to the graph, folding merged branches.
+           Set via --fold/--unfold/--fold-toggle (see OPTIONS), or directly.
+           Ex:
+               git config --global context-graph.first-parent true
+
        context-graph.exclude
            Git config multivar of fully-qualified ref glob patterns to always exclude from graph.
            Ex:

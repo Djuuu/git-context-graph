@@ -199,6 +199,13 @@ Example output:
 
 ## Configuration
 
+* `context-graph.first-parent`  
+  Boolean. When `true`, `--first-parent` is added to the graph, folding merged branches.  
+  Set via `--fold`/`--unfold`/`--fold-toggle` (see [Options](#options)), or directly.
+  ```bash
+  git config --global context-graph.first-parent true
+  ```
+
 * `context-graph.exclude`  
   Git config multivar of fully-qualified ref glob patterns (`refs/heads/...`, `refs/tags/...`, `refs/remotes/...`)
   to always exclude.
