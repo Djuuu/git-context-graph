@@ -126,6 +126,13 @@ ${b}OPTIONS${r}
    ${b}Help${r}
        -h|--usage
            Show this help.
+
+${b}CONFIGURATION${r}
+       context-graph.exclude
+           Git config multivar of fully-qualified ref glob patterns to always exclude from graph.
+           Ex:
+               git config --add context-graph.exclude 'refs/heads/wip/*'
+               git config --add context-graph.exclude 'refs/**/archive/*'
 EOF
 }
 
@@ -595,6 +602,16 @@ GIT_CG_TOGGLE_BRANCHES=()
 GIT_LOG_OPTIONS=()
 GIT_LOG_PATHS=()
 GIT_CG_FIRST_PARENT=
+
+# Ref exclusion patterns, fully-qualified.
+# Injected as --exclude ahead of every --all/--branches/--tags/--remotes/--glob in GIT_LOG_OPTIONS below
+# (git only applies accumulated --exclude patterns to the option that immediately follows them),
+# stripping the refs/heads, refs/tags or refs/remotes prefix as --branches/--tags/--remotes require.
+GIT_CG_EXCLUDE_PATTERNS=()
+while IFS= read -r pattern; do
+    GIT_CG_EXCLUDE_PATTERNS+=("$pattern")
+done < <(git config --get-all context-graph.exclude 2> /dev/null)
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         -a|--add) GIT_CG_ADD_TO_CURRENT=1; shift ;;
@@ -699,6 +716,46 @@ fi
 # - add git option if appropriate
 [[ $GIT_CG_FIRST_PARENT == on && -z $GIT_CG_NO_FIRST_PARENT ]] &&
     GIT_LOG_OPTIONS+=(--first-parent)
+
+# Inject --exclude ahead of each --all/--branches/--tags/--remotes/--glob it applies to
+if [[ ${#GIT_CG_EXCLUDE_PATTERNS[@]} -gt 0 ]]; then
+    git_log_options=()
+    for option in "${GIT_LOG_OPTIONS[@]}"; do
+        namespace=
+        case $option in
+            --all|--glob|--glob=*)   namespace=all ;;
+            --branches|--branches=*) namespace=refs/heads/ ;;
+            --tags|--tags=*)         namespace=refs/tags/ ;;
+            --remotes|--remotes=*)   namespace=refs/remotes/ ;;
+        esac
+        if [[ -n $namespace ]]; then
+            for pattern in "${GIT_CG_EXCLUDE_PATTERNS[@]}"; do
+                if [[ $namespace == all ]]; then
+                    git_log_options+=(--exclude="$pattern")
+                elif [[ $pattern == "$namespace"* ]]; then
+                    git_log_options+=(--exclude="${pattern#"$namespace"}")
+                elif [[ $pattern != refs/heads/* && $pattern != refs/tags/* && $pattern != refs/remotes/* ]]; then
+                    # Cross-namespace pattern (e.g. 'refs/**/archive/*'):
+                    # its wildcard segment stands in for the type-specific path component(s) (heads/tags/<remote>).
+                    # --branches/--tags drop that component entirely once relative to their namespace;
+                    # --remotes still has one (the remote name) left to skip.
+                    rest=${pattern#refs/}
+                    if [[ $namespace == refs/remotes/ ]]; then
+                        git_log_options+=(--exclude="$rest")
+                    else
+                        case $rest in
+                            '**/'*) git_log_options+=(--exclude="${rest#'**/'}") ;;
+                            '*/'*)  git_log_options+=(--exclude="${rest#'*/'}") ;;
+                            *)      git_log_options+=(--exclude="$rest") ;;
+                        esac
+                    fi
+                fi
+            done
+        fi
+        git_log_options+=("$option")
+    done
+    GIT_LOG_OPTIONS=("${git_log_options[@]}")
+fi
 
 
 # Show graph

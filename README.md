@@ -197,6 +197,23 @@ Example output:
 * `-h`|`--usage`  
   Show command usage.
 
+## Configuration
+
+* `context-graph.exclude`  
+  Git config multivar of fully-qualified ref glob patterns (`refs/heads/...`, `refs/tags/...`, `refs/remotes/...`)
+  to always exclude.
+
+  Injected as git log [`--exclude=<pattern>`](https://git-scm.com/docs/git-log#Documentation/git-log.txt---excludeglob-pattern)
+  before `--all`/`--branches`/`--tags`/`--remotes`/`--glob` options.  
+  `refs/heads`, `refs/tags` or `refs/remotes` prefixes are stripped as required by `--branches`/`--tags`/`--remotes`.
+
+  Patterns not scoped to one of those namespaces (e.g. using `**`) apply to all of `--branches`/`--tags`/`--remotes`,
+  as well as `--all`/`--glob`.
+  ```bash
+  git config --add context-graph.exclude 'refs/heads/wip/*'
+  git config --add context-graph.exclude 'refs/**/archive/*'
+  ```
+
 ## Installation
 
 * Add the `git-context-graph` directory to your `PATH`<br>

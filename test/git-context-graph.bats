@@ -414,6 +414,97 @@ teardown() {
     refute_output --partial "Main 1"
 }
 
+@test "context-graph.exclude filters refs even when --all is used, regardless of argument order" {
+    git clone ./remote1 repo && cd repo
+
+    # No local branch tracks feature-B/feature-C/epic, so excluding their only (remote) ref
+    # removes their commit from the graph entirely.
+    git config --add context-graph.exclude 'refs/remotes/origin/feature-B'
+    run git-context-graph --all --no-color
+    assert_success
+    assert_output --partial "Feature C - 1"
+    assert_output --partial "Epic B - 1"
+    refute_output --partial "Feature B - 1"
+
+    # Multiple values (multivar) are all applied.
+    git config --add context-graph.exclude 'refs/remotes/origin/epic/big-feature'
+    run git-context-graph --all --no-color
+    assert_success
+    refute_output --partial "Feature B - 1"
+    refute_output --partial "Epic B - 1"
+    assert_output --partial "Feature C - 1"
+}
+
+@test "context-graph.exclude prefixes are stripped to match --branches/--remotes glob semantics" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c local-wip -q
+    git commit -q --allow-empty -m "Local WIP - 1"
+    git switch -q main
+
+    # Patterns stay fully-qualified in context-graph.exclude...
+    git config --add context-graph.exclude 'refs/heads/local-wip'
+    git config --add context-graph.exclude 'refs/remotes/origin/feature-B'
+
+    # ...but --branches requires a bare pattern (no refs/heads/ prefix) to match.
+    run git-context-graph --branches --no-color
+    assert_success
+    refute_output --partial "Local WIP - 1"
+    assert_output --partial "Main 1"
+
+    # ...and --remotes requires a bare pattern (no refs/remotes/ prefix) to match.
+    run git-context-graph --remotes --no-color
+    assert_success
+    refute_output --partial "Feature B - 1"
+    assert_output --partial "Feature C - 1"
+}
+
+@test "context-graph.exclude cross-namespace wildcard pattern applies to --branches/--tags/--remotes/--all" {
+    git clone ./remote1 repo && cd repo
+
+    git switch -c archive/local-wip -q
+    git commit -q --allow-empty -m "Archived local - 1"
+    git switch -q main
+
+    git switch -c archive/remote-wip -q
+    git commit -q --allow-empty -m "Archived remote - 1"
+    git push -q origin archive/remote-wip
+    git switch -q main
+    git branch -D archive/remote-wip -q
+
+    git switch -c tag-target -q
+    git commit -q --allow-empty -m "Archived tag target - 1"
+    git tag archive/v-old
+    git switch -q main
+    git branch -D tag-target -q
+
+    # A single wildcard pattern, not scoped to any specific ref namespace, applies to all of
+    # --branches/--tags/--remotes/--all (its '**' stands in for the heads/tags/<remote> segment).
+    git config --add context-graph.exclude 'refs/**/archive/*'
+
+    run git-context-graph --branches --no-color
+    assert_success
+    refute_output --partial "Archived local - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --remotes --no-color
+    assert_success
+    refute_output --partial "Archived remote - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --tags --no-color
+    assert_success
+    refute_output --partial "Archived tag target - 1"
+    assert_output --partial "Main 1"
+
+    run git-context-graph --all --no-color
+    assert_success
+    refute_output --partial "Archived local - 1"
+    refute_output --partial "Archived remote - 1"
+    refute_output --partial "Archived tag target - 1"
+    assert_output --partial "Main 1"
+}
+
 @test "Persistent additional context branches can be configured" {
     git clone ./remote1 repo && cd repo
 
